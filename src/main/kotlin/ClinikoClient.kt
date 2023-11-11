@@ -19,6 +19,7 @@ class ClinikoClient (val baseUrl : String, apiKey: String){
                 credentials {
                     BasicAuthCredentials(username = apiKey, password = "")
                 }
+                // send authorization on first request (without waiting for denial from server)
                 sendWithoutRequest { request ->
                     true
                 }
