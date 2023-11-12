@@ -1,15 +1,18 @@
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.serialization.json.Json
 
 
 const val RESULTS_PER_PAGE = 100
 
-class ClinikoClient (val baseUrl : String, apiKey: String){
+class ClinikoClient(val baseUrl: String, apiKey: String) {
 
     val client = HttpClient(CIO) {
         expectSuccess = true
@@ -32,7 +35,7 @@ class ClinikoClient (val baseUrl : String, apiKey: String){
         }
     }
 
-    suspend fun getSection(section: String, params: Map<String, String> = emptyMap(), subsection : String = "") {
+    suspend fun getSection(section: String, params: Map<String, String> = emptyMap(), subsection: String = "") {
 
         val pathSegments = mutableListOf("v1", section)
         if (subsection.isNotEmpty()) pathSegments += subsection
@@ -44,7 +47,12 @@ class ClinikoClient (val baseUrl : String, apiKey: String){
         var page = 1
 
         val pageParameters = parameters + parametersOf("page", page.toString())
-        val urlBuilder = URLBuilder(host=baseUrl, pathSegments = pathSegments, parameters = pageParameters, protocol = URLProtocol.HTTPS)
+        val urlBuilder = URLBuilder(
+            host = baseUrl,
+            pathSegments = pathSegments,
+            parameters = pageParameters,
+            protocol = URLProtocol.HTTPS
+        )
 
         val response = client.get(urlBuilder.build()) {
             headers {
@@ -54,6 +62,17 @@ class ClinikoClient (val baseUrl : String, apiKey: String){
             }
         }
 
-        print(response.status)
+
+        val responseStr = response.bodyAsText()
+
+        val json = Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
+
+        val patients = json.decodeFromString<ClinikoPatientMessage>(responseStr)
+
+        print(patients.patients.size)
+
     }
 }
