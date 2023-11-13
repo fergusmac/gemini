@@ -8,9 +8,11 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.Json
+import kotlin.math.ceil
 
 
 const val RESULTS_PER_PAGE = 100
+const val SECTION_PATIENTS = "patients"
 
 class ClinikoClient(val baseUrl: String, apiKey: String) {
 
@@ -35,22 +37,12 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
         }
     }
 
-    suspend fun getSection(section: String, params: Map<String, String> = emptyMap(), subsection: String = "") {
+    suspend fun getRaw(pathSegments: List<String>, params : Parameters = parametersOf()) : String {
 
-        val pathSegments = mutableListOf("v1", section)
-        if (subsection.isNotEmpty()) pathSegments += subsection
-
-        //Paramters class allows multiple values per key, but we pass in just a single value per key, re-map here
-        var parameters = parametersOf(params.mapValues { listOf(it.value) })
-        parameters += parametersOf("per_page", RESULTS_PER_PAGE.toString())
-
-        var page = 1
-
-        val pageParameters = parameters + parametersOf("page", page.toString())
         val urlBuilder = URLBuilder(
             host = baseUrl,
             pathSegments = pathSegments,
-            parameters = pageParameters,
+            parameters = params,
             protocol = URLProtocol.HTTPS
         )
 
@@ -62,17 +54,56 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
             }
         }
 
+        return response.bodyAsText()
+    }
 
-        val responseStr = response.bodyAsText()
+    suspend fun getPages(pathSegments: List<String>, params : Parameters = parametersOf()) : List<String> {
 
-        val json = Json {
-            ignoreUnknownKeys = true
-            isLenient = true
+        val parameters = params + parametersOf("per_page", RESULTS_PER_PAGE.toString())
+
+        var currentPage = 1
+        var finalPage = 1
+
+        val responsePages = mutableListOf<String>()
+
+        while(currentPage <= finalPage) {
+            val pageParams = parameters + parametersOf("page", currentPage.toString())
+
+            responsePages += getRaw(pathSegments=pathSegments, params=pageParams)
+
+            if(currentPage == 1) {
+                //parse the first message, so we can read how many entries there are to fetch in total
+                val msg = parseJson<ClinikoGenericMessage>(responsePages.first())
+                finalPage = ceil(msg.totalEntries / RESULTS_PER_PAGE.toFloat()).toInt()
+            }
+
+            currentPage++
         }
 
-        val patients = json.decodeFromString<ClinikoPatientMessage>(responseStr)
-
-        print(patients.patients.size)
-
+        return responsePages
     }
+
+    suspend fun getAllPatients() : Map<Long, ClinikoPatient> {
+
+        //TODO get archived as well
+        val pages = getPages(listOf("v1", SECTION_PATIENTS))
+
+        val patients = mutableMapOf<Long, ClinikoPatient>()
+        for (page in pages) {
+            val msg = parseJson<ClinikoPatientMessage>(page)
+            patients.putAll(msg.patients.associateBy { it.id })
+        }
+
+
+        return patients
+    }
+}
+
+inline fun <reified T> parseJson(jsonStr: String) : T {
+    val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
+
+    return json.decodeFromString<T>(jsonStr)
 }
