@@ -9,12 +9,15 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.Json
 import kotlin.math.ceil
+import kotlin.time.Duration.Companion.minutes
 
 
 const val RESULTS_PER_PAGE = 100
 const val SECTION_PATIENTS = "patients"
 
 class ClinikoClient(val baseUrl: String, apiKey: String) {
+
+    val rateLimiter = RateLimiter(limit = 100, interval = 1.minutes)
 
     val client = HttpClient(CIO) {
         expectSuccess = true
@@ -46,15 +49,19 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
             protocol = URLProtocol.HTTPS
         )
 
-        val response = client.get(urlBuilder.build()) {
-            headers {
-                append(HttpHeaders.Accept, "application/json")
-                append(HttpHeaders.ContentType, "application/json")
-                append(HttpHeaders.UserAgent, "Gemini (fdmacpherson@gmail.com)")
+        var response : HttpResponse? = null
+
+        rateLimiter.submitTask {
+            response = client.get(urlBuilder.build()) {
+                headers {
+                    append(HttpHeaders.Accept, "application/json")
+                    append(HttpHeaders.ContentType, "application/json")
+                    append(HttpHeaders.UserAgent, "Gemini (fdmacpherson@gmail.com)")
+                }
             }
         }
 
-        return response.bodyAsText()
+        return response!!.bodyAsText()
     }
 
     suspend fun getPages(pathSegments: List<String>, params : Parameters = parametersOf()) : List<String> {
@@ -71,6 +78,7 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
 
             responsePages += getRaw(pathSegments=pathSegments, params=pageParams)
 
+            //TODO use coroutines for parallel requests
             if(currentPage == 1) {
                 //parse the first message, so we can read how many entries there are to fetch in total
                 val msg = parseJson<ClinikoGenericMessage>(responsePages.first())

@@ -5,11 +5,11 @@ import kotlin.math.ceil
 import kotlin.time.Duration
 import kotlin.time.TimeSource
 
-class RateLimiter(private val permits: Int, private val interval: Duration) {
+class RateLimiter(private val limit: Int, private val interval: Duration) {
+
     private val timeSource = TimeSource.Monotonic
-    private val semaphore = Semaphore(permits)
-    private val intervalMillis = interval.inWholeMilliseconds
-    private val tickMillis = ceil(intervalMillis / permits.toFloat()).toLong()
+    private val semaphore = Semaphore(limit)
+    private val tickMillis = ceil( interval.inWholeMilliseconds / limit.toFloat()).toLong()
     private var timer : Timer? = null
     private var lastRelease = timeSource.markNow()
 
@@ -21,14 +21,14 @@ class RateLimiter(private val permits: Int, private val interval: Duration) {
     }
 
     private fun releasePermit() {
-        if(semaphore.availablePermits < permits)
+        if(semaphore.availablePermits < limit)
         {
             semaphore.release()
             lastRelease = timeSource.markNow()
             println("Release")
         }
 
-        if((timeSource.markNow() - lastRelease > interval) and (semaphore.availablePermits == permits)) {
+        if((timeSource.markNow() - lastRelease > interval) and (semaphore.availablePermits == limit)) {
             //if all permits are released, and it's been 1 interval since we released the last one, pause the timer
             pause()
         }
