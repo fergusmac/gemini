@@ -1,5 +1,4 @@
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
@@ -7,7 +6,6 @@ import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -20,6 +18,7 @@ import kotlin.time.Duration.Companion.minutes
 
 const val RESULTS_PER_PAGE = 100
 const val SECTION_PATIENTS = "patients"
+const val SECTION_APPOINTMENTS = "individual_appointments"
 
 class ClinikoClient(val baseUrl: String, apiKey: String) {
 
@@ -107,6 +106,21 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
         }
 
         return patients
+    }
+
+    suspend fun getAllAppointments() : Map<Long, ClinikoAppointment> {
+        //this is for individual appts only
+
+        //wildcard to get both archived and unarchived appts, as well as cancelled / not cancelled
+        val pages = getPages(listOf("v1", SECTION_APPOINTMENTS), params = parametersOf("q[]", listOf("archived_at:*", "cancelled_at:*")))
+
+        val appts = mutableMapOf<Long, ClinikoAppointment>()
+        for (page in pages) {
+            val msg = parseJson<ClinikoIndividualAppointmentMessage>(page)
+            appts.putAll(msg.individualAppointments.associateBy { it.id })
+        }
+
+        return appts
     }
 }
 
