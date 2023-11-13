@@ -1,3 +1,7 @@
+import cliniko_messages.ClinikoAppointment
+import cliniko_messages.ClinikoIndividualAppointmentMessage
+import cliniko_messages.ClinikoPatient
+import cliniko_messages.ClinikoPatientMessage
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.auth.*
@@ -94,10 +98,10 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
         return responsePages
     }
 
-    suspend fun getAllPatients() : Map<Long, ClinikoPatient> {
+    suspend fun getPatients(params: Parameters = parametersOf()) : Map<Long, ClinikoPatient> {
 
         //wildcard to get both archived and unarchived patients
-        val pages = getPages(listOf("v1", SECTION_PATIENTS), params = parametersOf("q[]", "archived_at:*"))
+        val pages = getPages(listOf("v1", SECTION_PATIENTS), params = params + parametersOf("q[]", "archived_at:*"))
 
         val patients = mutableMapOf<Long, ClinikoPatient>()
         for (page in pages) {
@@ -108,11 +112,11 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
         return patients
     }
 
-    suspend fun getAllAppointments() : Map<Long, ClinikoAppointment> {
+    suspend fun getAppointments(params: Parameters = parametersOf()) : Map<Long, ClinikoAppointment> {
         //this is for individual appts only
 
         //wildcard to get both archived and unarchived appts, as well as cancelled / not cancelled
-        val pages = getPages(listOf("v1", SECTION_APPOINTMENTS), params = parametersOf("q[]", listOf("archived_at:*", "cancelled_at:*")))
+        val pages = getPages(listOf("v1", SECTION_APPOINTMENTS), params = params + parametersOf("q[]", listOf("archived_at:*", "cancelled_at:*")))
 
         val appts = mutableMapOf<Long, ClinikoAppointment>()
         for (page in pages) {

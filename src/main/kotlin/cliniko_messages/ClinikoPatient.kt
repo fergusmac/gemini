@@ -1,3 +1,5 @@
+package cliniko_messages
+
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
