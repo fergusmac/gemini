@@ -11,6 +11,8 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.math.ceil
 import kotlin.time.Duration.Companion.minutes
@@ -116,3 +118,8 @@ inline fun <reified T> parseJson(jsonStr: String) : T {
 
     return json.decodeFromString<T>(jsonStr)
 }
+
+@Serializable
+data class ClinikoGenericMessage(
+    @SerialName("total_entries") val totalEntries: Int
+)
