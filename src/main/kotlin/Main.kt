@@ -1,7 +1,5 @@
-import kotlinx.coroutines.delay
-import java.util.Date
-import java.util.concurrent.TimeUnit
-import kotlin.time.Duration.Companion.seconds
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 suspend fun main(args: Array<String>) {
 
@@ -10,5 +8,6 @@ suspend fun main(args: Array<String>) {
 
     val patients = cliniko.getAllPatients()
     println(patients.size)
+    print(patients.get(1001647897692871778)?.archivedAt?.toLocalDateTime(TimeZone.currentSystemDefault()))
 
 }
