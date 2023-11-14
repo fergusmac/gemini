@@ -1,16 +1,33 @@
 import cliniko.ClinikoPatient
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import org.bson.BsonDateTime
+import org.bson.BsonReader
+import org.bson.BsonType
+import org.bson.BsonWriter
+import org.bson.codecs.BsonDateTimeCodec
+import org.bson.codecs.Codec
+import org.bson.codecs.DecoderContext
+import org.bson.codecs.EncoderContext
+import org.bson.codecs.kotlinx.BsonEncoder
 import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.codecs.pojo.annotations.BsonRepresentation
 import org.bson.types.ObjectId
 
 data class Patient (
     @BsonId val id: ObjectId,
+    val label : String,
     val cliniko : ClinikoObject,
     val person: Person,
     val medicare: MedicareCard? = null,
     val ndisNumber: Long? = null,
-    val notices : String? = null,
     val marketingSource : String? = null,
     val manualBilling : Boolean? = null,
     val stripeId : String? = null,
@@ -25,14 +42,17 @@ data class Patient (
 
         fun fromCliniko(clinikoPatient: ClinikoPatient) : Patient {
             with (clinikoPatient) {
+                val name = Name(
+                    first = firstName,
+                    preferred = preferredFirstName,
+                    last = lastName
+                )
+
                 return Patient(
                     id = ObjectId(),
+                    label = name.getFull(),
                     person = Person(
-                        name = Name(
-                            first = firstName,
-                            preferred = preferredFirstName,
-                            last = lastName
-                        ),
+                        name = name,
                         dob = dateOfBirth,
                         address = Address(
                             line1 = address1,
@@ -57,7 +77,6 @@ data class Patient (
                         modified = updatedAt,
                         archived = archivedAt
                     ),
-                    notices = apptNotes,
                     marketingSource = referralSource,
                     ndisNumber = null
                 )
@@ -70,7 +89,15 @@ data class Name (
     val first: String,
     val preferred: String?,
     val last: String
-)
+) {
+
+    fun getFull(usePreferred : Boolean = true) : String {
+        return if (usePreferred and !(preferred.isNullOrBlank()))
+            "$preferred $last"
+        else
+            "$first $last"
+    }
+}
 
 data class Address (
     val line1: String?,
@@ -146,3 +173,23 @@ data class Event (
     val name: String,
     val time: Instant
 )
+
+
+//By default, instant gets written to Mongo as a String - this lets us write it as a Date instead
+class InstantCodec : Codec<Instant> {
+    override fun encode(writer: BsonWriter, value: Instant?, encoderContext: EncoderContext?) {
+        if(value == null)
+            writer.writeNull()
+        else
+            writer.writeDateTime(value.toEpochMilliseconds())
+    }
+
+    override fun getEncoderClass(): Class<Instant> {
+        return Instant::class.java
+    }
+
+    override fun decode(reader: BsonReader, decoderContext: DecoderContext?): Instant? {
+        return if (reader.currentBsonType == BsonType.NULL) null else Instant.fromEpochMilliseconds(reader.readDateTime())
+    }
+
+}

@@ -13,6 +13,7 @@ repositories {
 
 val ktor_version: String by project
 val logback_version : String by project
+val mongo_version : String by project
 
 dependencies {
     testImplementation(kotlin("test"))
@@ -24,7 +25,8 @@ dependencies {
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
-    implementation("org.mongodb:mongodb-driver-kotlin-coroutine:4.10.1")
+    implementation("org.mongodb:bson-kotlinx:$mongo_version")
+    implementation("org.mongodb:mongodb-driver-kotlin-coroutine:$mongo_version")
 }
 
 tasks.test {
