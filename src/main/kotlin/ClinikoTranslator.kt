@@ -3,12 +3,14 @@ import com.mongodb.ConnectionString
 import com.mongodb.client.model.Filters.eq
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.firstOrNull
 import org.bson.BsonInt64
 import org.bson.Document
 import org.bson.types.ObjectId
 
+private val logger = KotlinLogging.logger {}
 class ClinikoTranslator (connectionString: ConnectionString, val databaseName : String) {
 
     val client = MongoClient.create(connectionString=connectionString)
@@ -27,7 +29,7 @@ class ClinikoTranslator (connectionString: ConnectionString, val databaseName : 
             )
         )
 
-        patients.insertOne(patient).also { println("Inserted ${it.insertedId}")}
+        patients.insertOne(patient)
     }
 
     suspend fun getPatient(clinikoId : Long) : Patient? {
