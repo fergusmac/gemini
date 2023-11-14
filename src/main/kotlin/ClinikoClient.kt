@@ -1,7 +1,7 @@
-import cliniko_messages.ClinikoAppointment
-import cliniko_messages.ClinikoIndividualAppointmentMessage
-import cliniko_messages.ClinikoPatient
-import cliniko_messages.ClinikoPatientMessage
+import cliniko.ClinikoAppointment
+import cliniko.ClinikoIndividualAppointmentMessage
+import cliniko.ClinikoPatient
+import cliniko.ClinikoPatientMessage
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.auth.*
