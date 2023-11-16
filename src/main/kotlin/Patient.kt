@@ -40,7 +40,8 @@ data class Patient (
 
     companion object {
 
-        fun fromCliniko(clinikoPatient: ClinikoPatient) : Patient {
+        fun fromCliniko(clinikoPatient: ClinikoPatient, existing : Patient? = null) : Patient {
+            //create or update, keeping any non-cliniko fields the same
             with (clinikoPatient) {
                 val name = Name(
                     first = firstName,
@@ -49,7 +50,7 @@ data class Patient (
                 )
 
                 return Patient(
-                    id = ObjectId(),
+                    id = existing?.id ?: ObjectId(),
                     label = name.getFull(),
                     person = Person(
                         name = name,
@@ -78,7 +79,13 @@ data class Patient (
                         archived = archivedAt
                     ),
                     marketingSource = referralSource,
-                    ndisNumber = null
+                    ndisNumber = existing?.ndisNumber,
+                    manualBilling = existing?.manualBilling,
+                    stripeId = existing?.stripeId,
+                    emergencyContact = existing?.emergencyContact,
+                    billingContact = existing?.billingContact,
+                    claimant = existing?.claimant,
+                    events = existing?.events ?: emptyList()
                 )
             }
         }

@@ -15,7 +15,7 @@ suspend fun main(args: Array<String>) {
 
     val patients = cliniko.getPatients()
 
-    db.addPatients(patients.values)
+    for (patient in patients.values) db.addOrUpdatePatient(patient)
 
     //val appts = cliniko.getAppointments()
     //println(appts.size)
