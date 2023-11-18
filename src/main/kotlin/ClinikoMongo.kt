@@ -1,13 +1,16 @@
 import cliniko.ClinikoPatient
+import com.mongodb.ClientSessionOptions
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.MongoException
+import com.mongodb.TransactionOptions
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Filters.eq
 import com.mongodb.client.model.Filters.`in`
 import com.mongodb.client.model.ReplaceOptions
 import com.mongodb.client.model.UpdateOptions
 import com.mongodb.client.model.Updates
+import com.mongodb.kotlin.client.coroutine.ClientSession
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -34,26 +37,35 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
 
     suspend fun addOrUpdatePatient(clinikoPatient : ClinikoPatient) {
 
-        //TODO some sort of transaction lock between getting and setting?
-        val existing = getPatient(clinikoPatient.id)
-
-        //copy any non-cliniko fields from the existing document (if any)
-        val updated = Patient.fromCliniko(clinikoPatient, existing=existing)
-
-        if (updated == existing) {
-            return
-        }
+        val session = client.startSession()
 
         try {
+            session.startTransaction()
+            val existing = getPatient(clinikoPatient.id)
+
+
+            //copy any non-cliniko fields from the existing document (if any)
+            val updated = Patient.fromCliniko(clinikoPatient, existing = existing)
+
+            if (updated == existing) {
+                session.abortTransaction()
+                return
+            }
+
             patients.replaceOne(
                 filter = eq(Patient::id.name, updated.id),
                 replacement = updated,
                 options = ReplaceOptions().upsert(true)
             )
+
+            session.commitTransaction()
+
         }
         catch (e: MongoException) {
             logger.error { "Unable to insert/update cliniko patient ${clinikoPatient.id} due to an error: $e" }
+            session.abortTransaction()
         }
+        session.close()
     }
 
     suspend fun getPatient(clinikoId : Long) : Patient? {
