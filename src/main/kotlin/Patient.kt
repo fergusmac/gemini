@@ -1,4 +1,8 @@
 import cliniko.ClinikoPatient
+import com.mongodb.client.model.Updates
+import com.mongodb.client.model.Updates.combine
+import com.mongodb.client.model.Updates.set
+import kotlin.reflect.full.declaredMemberProperties
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.KSerializer
@@ -19,6 +23,7 @@ import org.bson.codecs.EncoderContext
 import org.bson.codecs.kotlinx.BsonEncoder
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.codecs.pojo.annotations.BsonRepresentation
+import org.bson.conversions.Bson
 import org.bson.types.ObjectId
 
 data class Patient (
@@ -91,6 +96,12 @@ data class Patient (
             }
         }
     }
+
+    fun findUpdates(existing: Patient?) : Map<String, Any?> {
+        val results = mutableMapOf<String, Any?>()
+        results.putAll( person.address.findUpdates(existing?.person?.address).mapKeys { "person.address.${it.key}" } )
+        return results
+    }
 }
 
 data class Name (
@@ -116,6 +127,24 @@ data class Address (
     val state: String?,
     val country: String?,
 )
+{
+    fun findUpdates(existing: Address?) : Map<String, Any?> {
+        val results = mutableMapOf<String, Any?>()
+        for (prop in Address::class.declaredMemberProperties) {
+            val newValue = prop.get(this)
+            if (existing == null) {
+                if (newValue != null) results[prop.name] = newValue
+                continue
+            }
+            val oldValue = prop.get(existing)
+            if (oldValue != newValue) results[prop.name] = newValue
+        }
+
+        return results
+    }
+}
+
+
 
 data class MedicareCard (
     val number : Long,

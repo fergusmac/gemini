@@ -1,5 +1,6 @@
 import com.mongodb.ConnectionString
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.http.*
 
 private val logger = KotlinLogging.logger {}
 suspend fun main(args: Array<String>) {
@@ -13,7 +14,7 @@ suspend fun main(args: Array<String>) {
     println("Api Key: ")
     val cliniko = ClinikoClient("api.au3.cliniko.com", apiKey = readln())
 
-    val patients = cliniko.getPatients()
+    val patients = cliniko.getPatients(params = parametersOf("q[]", "id:=826332652180085831"))
 
     for (patient in patients.values) db.addOrUpdatePatient(patient)
 
