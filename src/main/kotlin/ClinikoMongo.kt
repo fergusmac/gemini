@@ -37,35 +37,24 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
 
     suspend fun addOrUpdatePatient(clinikoPatient : ClinikoPatient) {
 
-        val session = client.startSession()
+        client.transact { session ->
 
-        try {
-            session.startTransaction()
             val existing = getPatient(clinikoPatient.id)
-
 
             //copy any non-cliniko fields from the existing document (if any)
             val updated = Patient.fromCliniko(clinikoPatient, existing = existing)
 
             if (updated == existing) {
                 session.abortTransaction()
-                return
+                return@transact
             }
 
             patients.replaceOne(
-                filter = eq(Patient::id.name, updated.id),
+                filter = eq("_id", updated.id),
                 replacement = updated,
                 options = ReplaceOptions().upsert(true)
             )
-
-            session.commitTransaction()
-
         }
-        catch (e: MongoException) {
-            logger.error { "Unable to insert/update cliniko patient ${clinikoPatient.id} due to an error: $e" }
-            session.abortTransaction()
-        }
-        session.close()
     }
 
     suspend fun getPatient(clinikoId : Long) : Patient? {
@@ -75,6 +64,24 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
     suspend fun getPatients(clinikoIds : List<Long>) : List<Patient> {
         return patients.find(`in`("cliniko.id", clinikoIds)).toList()
     }
+}
+
+suspend fun ClientSession.transact(func : suspend (ClientSession) -> Unit) {
+    startTransaction()
+    try {
+        func(this)
+        //if abort or commit are called within the func block, this will be skipped
+        if (hasActiveTransaction()) commitTransaction()
+    }
+    catch (e: MongoException) {
+        logger.error { "Mongo Transaction aborted due to error: $e" }
+        abortTransaction()
+    }
+}
+
+suspend fun MongoClient.transact(func : suspend (ClientSession) -> Unit) {
+    //this closes the session on completion
+    startSession().use { it.transact(func) }
 }
 
 

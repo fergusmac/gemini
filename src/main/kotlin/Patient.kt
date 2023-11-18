@@ -55,6 +55,7 @@ data class Patient (
                     person = Person(
                         name = name,
                         dob = dateOfBirth,
+                        email = email,
                         address = Address(
                             line1 = address1,
                             line2 = address2,
@@ -148,8 +149,8 @@ data class Pronouns (
         fun fromCliniko(clinikoPronouns : cliniko.Pronouns) : Pronouns{
             with (clinikoPronouns) {
                 return Pronouns(
-                    they = accusative,
-                    them = nominative,
+                    they = nominative,
+                    them = accusative,
                     their = predicativePossessive,
                     theirs = pronominalPossessive,
                     themself = reflexive
@@ -169,6 +170,7 @@ data class ClinikoObject (
 data class Person (
     val name : Name,
     val dob : LocalDate?,
+    val email: String?,
     val address: Address,
     val gender : String?,
     val sex : String?,
