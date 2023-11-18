@@ -25,6 +25,7 @@ import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.codecs.pojo.annotations.BsonRepresentation
 import org.bson.conversions.Bson
 import org.bson.types.ObjectId
+import kotlin.reflect.full.declaredMembers
 
 data class Patient (
     @BsonId val id: ObjectId,
@@ -128,23 +129,24 @@ data class Address (
     val country: String?,
 )
 {
-    fun findUpdates(existing: Address?) : Map<String, Any?> {
-        val results = mutableMapOf<String, Any?>()
-        for (prop in Address::class.declaredMemberProperties) {
-            val newValue = prop.get(this)
-            if (existing == null) {
-                if (newValue != null) results[prop.name] = newValue
-                continue
-            }
-            val oldValue = prop.get(existing)
-            if (oldValue != newValue) results[prop.name] = newValue
-        }
-
-        return results
-    }
+    fun findUpdates(existing: Address?) : Map<String, Any?> = diff(old=existing, new=this)
 }
 
+/**
+ * Returns a map of the member properties (by name) that have changed and their new values
+ *  If existing is null, return all properties
+ */
+inline fun <reified T : Any> diff(old : T?, new : T) : Map<String, Any?> {
+    val results = mutableMapOf<String, Any?>()
+    for (prop in T::class.declaredMemberProperties) {
+        val newValue = prop.get(new)
+        if (old == null || prop.get(old) != newValue) {
+            if (newValue != null) results[prop.name] = newValue
+        }
+    }
 
+    return results
+}
 
 data class MedicareCard (
     val number : Long,
