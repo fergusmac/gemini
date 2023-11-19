@@ -1,15 +1,7 @@
 import cliniko.ClinikoPatient
-import com.mongodb.client.model.Updates
-import com.mongodb.client.model.Updates.combine
-import com.mongodb.client.model.Updates.set
 import kotlin.reflect.full.declaredMemberProperties
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import org.bson.BsonDateTime
@@ -25,6 +17,8 @@ import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.codecs.pojo.annotations.BsonRepresentation
 import org.bson.conversions.Bson
 import org.bson.types.ObjectId
+import kotlin.reflect.KProperty
+import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMembers
 
 data class Patient (
@@ -100,16 +94,45 @@ data class Patient (
 
     fun findUpdates(existing: Patient?) : Map<String, Any?> {
         val results = mutableMapOf<String, Any?>()
-        results.putAll( person.address.findUpdates(existing?.person?.address).mapKeys { "person.address.${it.key}" } )
+        results.putAll( person.address.diff(existing?.person?.address).mapKeys { "person.address.${it.key}" } )
         return results
     }
+}
+
+interface Diffable<T> {
+
+    fun diff(existing: T?) : Map<String, Any?> = simpleDiff(old=existing, new=this)
+}
+
+fun <S, T: Diffable<T>> nestedDiff(prop: KProperty1<S, T>, old: S?, new: S) : Map<String, Any?>{
+    val oldValue = old?.let { prop.get(it) }
+    val newValue = prop.get(new)
+    return newValue.diff(oldValue).mapKeys { "${prop.name}.${it.key}" }
+}
+
+/**
+ * Returns a map of the member properties (by name) that have changed and their new values
+ *  If existing is null, return all properties
+ */
+inline fun <reified T : Any> simpleDiff(old : T?, new : T, skipFields: List<String> = emptyList()) : MutableMap<String, Any?> {
+    val results = mutableMapOf<String, Any?>()
+    for (prop in T::class.declaredMemberProperties) {
+        if (prop.name in skipFields) continue
+        val newValue = prop.get(new)
+        if (old == null || prop.get(old) != newValue) {
+            results[prop.name] = newValue
+        }
+    }
+
+    return results
 }
 
 data class Name (
     val first: String,
     val preferred: String?,
     val last: String
-) {
+) : Diffable<Name>
+{
 
     fun getFull(usePreferred : Boolean = true) : String {
         return if (usePreferred and !(preferred.isNullOrBlank()))
@@ -119,6 +142,8 @@ data class Name (
     }
 }
 
+
+
 data class Address (
     val line1: String?,
     val line2: String?,
@@ -127,41 +152,25 @@ data class Address (
     val city: String?,
     val state: String?,
     val country: String?,
-)
-{
-    fun findUpdates(existing: Address?) : Map<String, Any?> = diff(old=existing, new=this)
-}
+) : Diffable<Address>
 
-/**
- * Returns a map of the member properties (by name) that have changed and their new values
- *  If existing is null, return all properties
- */
-inline fun <reified T : Any> diff(old : T?, new : T) : Map<String, Any?> {
-    val results = mutableMapOf<String, Any?>()
-    for (prop in T::class.declaredMemberProperties) {
-        val newValue = prop.get(new)
-        if (old == null || prop.get(old) != newValue) {
-            if (newValue != null) results[prop.name] = newValue
-        }
-    }
-
-    return results
-}
 
 data class MedicareCard (
     val number : Long,
     val irn : Int?
-)
+) : Diffable<MedicareCard>
 
 data class PhoneNumber (
     val number : String,
     val label : String
-) {
+) : Diffable<PhoneNumber>
+{
     companion object {
         fun fromCliniko(clinikoPhone : cliniko.PhoneNumber) : PhoneNumber {
             return PhoneNumber(number = clinikoPhone.number, label = clinikoPhone.phoneType)
         }
     }
+
 }
 
 data class Claimant(
@@ -175,7 +184,8 @@ data class Pronouns (
     val their : String, // predicativePossessive
     val theirs : String, // pronominalPossessive
     val themself: String, // reflexive
-) {
+) : Diffable<Pronouns>
+{
     companion object {
         fun fromCliniko(clinikoPronouns : cliniko.Pronouns) : Pronouns{
             with (clinikoPronouns) {
@@ -207,7 +217,19 @@ data class Person (
     val sex : String?,
     val pronouns: Pronouns?,
     val phones: List<PhoneNumber>
-)
+) : Diffable<Person> {
+
+    override fun diff(existing: Person?): Map<String, Any?> {
+
+        val nestedFields = mutableListOf<String>()
+        val results = mutableMapOf<String, Any?>()
+
+        results.putAll(nestedDiff(Person::address.also { nestedFields.add(it.name) }, old = existing, new = this))
+        results.putAll(simpleDiff(existing, this, skipFields = nestedFields))
+        return results
+    }
+}
+
 
 data class Event (
     val name: String,
