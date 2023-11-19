@@ -21,8 +21,8 @@ inline fun <reified T : Any> simpleDiff(old : T?, new : T, skipFields: List<Stri
 
 
 /**
- * As simpleDiff, but recursive. At each level, the next call can be either simpleDiff (if all members are primitives),
- * or a mix of calls to simpleDiff and nestedDiff
+ * As simpleDiff, but recursive. The point is to replace individual fields on sub-objects, rather than the whole object
+ * The interface allows each level of the recursion to be e.g. a call to simpleDiff or something else
  */
 interface Diffable<T> {
     fun diff(existing: T?) : Map<String, Any?> = simpleDiff(old=existing, new=this)
@@ -38,15 +38,3 @@ inline fun <reified S, reified T : Diffable<T>> nestedDiff(old: S?, new: S, prop
     // else recurse. Add the property name to the front of each returned result (so we get a label of A.B.C)
     return newValue.diff(oldValue).mapKeys { "${prop.name}.${it.key}" }
 }
-
-/*inline fun <reified S, reified T : Diffable<T>> arrayDiff(old: S?, new: S, prop: KProperty1<S, List<T?>>) : Map<String, Any?> {
-    val oldValue = old?.let { prop.get(it) }
-
-    // if both new and old are empty or null, return nothing. If new is null but old isnt, return propName -> null
-    val newValue = prop.get(new)
-
-    if (newValue.isEmpty()) return if (oldValue.isNullOrEmpty()) emptyMap() else mapOf(prop.name to null)
-
-    // else recurse. Add the property name to the front of each returned result (so we get a label of A.B.C)
-    return newValue.diff(oldValue).mapKeys { "${prop.name}.${it.key}" }
-}*/
