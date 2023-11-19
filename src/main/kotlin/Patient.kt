@@ -2,24 +2,15 @@ import cliniko.ClinikoPatient
 import kotlin.reflect.full.declaredMemberProperties
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import org.bson.BsonDateTime
 import org.bson.BsonReader
 import org.bson.BsonType
 import org.bson.BsonWriter
-import org.bson.codecs.BsonDateTimeCodec
 import org.bson.codecs.Codec
 import org.bson.codecs.DecoderContext
 import org.bson.codecs.EncoderContext
-import org.bson.codecs.kotlinx.BsonEncoder
 import org.bson.codecs.pojo.annotations.BsonId
-import org.bson.codecs.pojo.annotations.BsonRepresentation
-import org.bson.conversions.Bson
 import org.bson.types.ObjectId
-import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.declaredMembers
 
 data class Patient (
     @BsonId val id: ObjectId,
@@ -93,39 +84,13 @@ data class Patient (
     }
 
     fun findUpdates(existing: Patient?) : Map<String, Any?> {
-        val results = mutableMapOf<String, Any?>()
-        results.putAll( person.address.diff(existing?.person?.address).mapKeys { "person.address.${it.key}" } )
-        return results
+        return nestedDiff(old = existing, new = this, prop = Patient::person)
     }
 }
 
-interface Diffable<T> {
 
-    fun diff(existing: T?) : Map<String, Any?> = simpleDiff(old=existing, new=this)
-}
 
-fun <S, T: Diffable<T>> nestedDiff(prop: KProperty1<S, T>, old: S?, new: S) : Map<String, Any?>{
-    val oldValue = old?.let { prop.get(it) }
-    val newValue = prop.get(new)
-    return newValue.diff(oldValue).mapKeys { "${prop.name}.${it.key}" }
-}
 
-/**
- * Returns a map of the member properties (by name) that have changed and their new values
- *  If existing is null, return all properties
- */
-inline fun <reified T : Any> simpleDiff(old : T?, new : T, skipFields: List<String> = emptyList()) : MutableMap<String, Any?> {
-    val results = mutableMapOf<String, Any?>()
-    for (prop in T::class.declaredMemberProperties) {
-        if (prop.name in skipFields) continue
-        val newValue = prop.get(new)
-        if (old == null || prop.get(old) != newValue) {
-            results[prop.name] = newValue
-        }
-    }
-
-    return results
-}
 
 data class Name (
     val first: String,
@@ -206,7 +171,7 @@ data class ClinikoObject (
     val created : Instant,
     val modified : Instant,
     val archived : Instant?
-)
+) : Diffable<ClinikoObject>
 
 data class Person (
     val name : Name,
@@ -221,11 +186,15 @@ data class Person (
 
     override fun diff(existing: Person?): Map<String, Any?> {
 
-        val nestedFields = mutableListOf<String>()
         val results = mutableMapOf<String, Any?>()
 
-        results.putAll(nestedDiff(Person::address.also { nestedFields.add(it.name) }, old = existing, new = this))
-        results.putAll(simpleDiff(existing, this, skipFields = nestedFields))
+        results.putAll(nestedDiff(old = existing, new = this, prop = Person::name))
+        results.putAll(nestedDiff(old = existing, new = this, prop = Person::address))
+        results.putAll(nestedDiff(old = existing, new = this, prop = Person::pronouns))
+        //results.putAll(arrayDiff(old = existing, new = this, prop = Person::phones))
+
+        results.putAll(simpleDiff(existing, this, skipFields = results.keys.toList()))
+
         return results
     }
 }
