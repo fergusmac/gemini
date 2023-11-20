@@ -25,8 +25,9 @@ data class Patient (
     val emergencyContact : Person? = null,
     val billingContact : Person? = null,
     val claimant : Claimant? = null,
-    val events : List<Event> = emptyList()
-) {
+    val events : List<Event> = emptyList() //TODO make map
+) : Diffable<Patient>
+{
 //TODO group leader?
 
     companion object {
@@ -58,7 +59,7 @@ data class Patient (
                         ),
                         gender = genderIdentity,
                         sex = sex,
-                        phones = patientPhoneNumbers?.map { PhoneNumber.fromCliniko(it) } ?: emptyList(),
+                        phones = patientPhoneNumbers?.associate { Pair(it.number, it.phoneType) } ?: emptyMap(),
                         pronouns = pronouns?.let { Pronouns.fromCliniko(it) },
                     ),
                     medicare = medicare?.toLongOrNull()?.let {
@@ -83,14 +84,44 @@ data class Patient (
         }
     }
 
-    fun findUpdates(existing: Patient?) : Map<String, Any?> {
-        return nestedDiff(old = existing, new = this, prop = Patient::person)
+    fun findUpdates(existing: Patient?) : Map<String, Any?> = diff(existing)
+
+    override fun diff(existing: Patient?): Map<String, Any?> {
+
+        val results = mutableMapOf<String, Any?>()
+
+        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::person))
+        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::medicare))
+        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::cliniko))
+        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::emergencyContact))
+        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::billingContact))
+        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::claimant))
+
+        results.putAll(
+            simpleDiff(existing, this,
+                skipFields = listOf(
+                    Patient::person.name,
+                    Patient::medicare.name,
+                    Patient::cliniko.name,
+                    Patient::emergencyContact.name,
+                    Patient::billingContact.name,
+                    Patient::claimant.name,
+                    Patient::events.name,  //TODO
+                    Patient::id.name)
+            )
+        )
+
+        return results
     }
 }
 
 
-
-
+/**
+ * Add all the entries to the map, but add a prefix (ending in a .) to each key
+ */
+fun <V> MutableMap<String, V>.putAllPrefixed(prefix: String, other: Map<String, V>) {
+    this.putAll(other.mapKeys { prefix dot it.key })
+}
 
 data class Name (
     val first: String,
@@ -106,8 +137,6 @@ data class Name (
             "$first $last"
     }
 }
-
-
 
 data class Address (
     val line1: String?,
@@ -125,23 +154,21 @@ data class MedicareCard (
     val irn : Int?
 ) : Diffable<MedicareCard>
 
-data class PhoneNumber (
-    val number : String,
-    val label : String
-) : Diffable<PhoneNumber>
-{
-    companion object {
-        fun fromCliniko(clinikoPhone : cliniko.PhoneNumber) : PhoneNumber {
-            return PhoneNumber(number = clinikoPhone.number, label = clinikoPhone.phoneType)
-        }
-    }
-
-}
-
-data class Claimant(
+data class Claimant (
     val person : Person,
     val medicare: MedicareCard
-)
+) : Diffable<Claimant>
+{
+    override fun diff(existing: Claimant?): Map<String, Any?> {
+
+        val results = mutableMapOf<String, Any?>()
+
+        results.putAll(nestedDiff(old = existing, new = this, prop = Claimant::person))
+        results.putAll(nestedDiff(old = existing, new = this, prop = Claimant::medicare))
+
+        return results
+    }
+}
 
 data class Pronouns (
     val they : String, // accusative
@@ -181,7 +208,7 @@ data class Person (
     val gender : String?,
     val sex : String?,
     val pronouns: Pronouns?,
-    val phones: List<PhoneNumber>
+    val phones: Map<String, String> // label -> number
 ) : Diffable<Person> {
 
     override fun diff(existing: Person?): Map<String, Any?> {
@@ -191,9 +218,18 @@ data class Person (
         results.putAll(nestedDiff(old = existing, new = this, prop = Person::name))
         results.putAll(nestedDiff(old = existing, new = this, prop = Person::address))
         results.putAll(nestedDiff(old = existing, new = this, prop = Person::pronouns))
-        //results.putAll(arrayDiff(old = existing, new = this, prop = Person::phones))
 
-        results.putAll(simpleDiff(existing, this, skipFields = results.keys.toList()))
+        results.putAllPrefixed(Person::phones.name, simpleMapDiff(old = existing?.phones, new = phones))
+
+        results.putAll(
+            simpleDiff(existing, this,
+                skipFields = listOf(
+                    Person::name.name,
+                    Person::address.name,
+                    Person::pronouns.name,
+                    Person::phones.name)
+            )
+        )
 
         return results
     }
@@ -203,7 +239,7 @@ data class Person (
 data class Event (
     val name: String,
     val time: Instant
-)
+) : Diffable<Event>
 
 
 //By default, instant gets written to Mongo as a String - this lets us write it as a Date instead

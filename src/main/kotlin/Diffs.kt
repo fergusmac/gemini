@@ -1,3 +1,4 @@
+import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 
@@ -13,6 +14,30 @@ inline fun <reified T : Any> simpleDiff(old : T?, new : T, skipFields: List<Stri
         val newValue = prop.get(new)
         if (old == null || prop.get(old) != newValue) {
             results[prop.name] = newValue
+        }
+    }
+
+    return results
+}
+
+// like simpleDiff but for maps - return all KVs that have been added, modified or deleted (signified by K = null)
+// this only works for primitive types of V
+fun <K, V> simpleMapDiff(old : Map<K, V>?, new : Map<K, V>) : Map<K, V?> {
+
+    val results = mutableMapOf<K, V?>()
+    if (old.isNullOrEmpty()) return new
+
+    new.forEach {
+        // create or modify operation
+        if (old.getOrDefault(it.key, null) != it.value) {
+            results[it.key] = it.value
+        }
+    }
+
+    old.forEach {
+        // delete operation
+        if (it.key !in new) {
+            results[it.key] = null
         }
     }
 
@@ -37,4 +62,28 @@ inline fun <reified S, reified T : Diffable<T>> nestedDiff(old: S?, new: S, prop
 
     // else recurse. Add the property name to the front of each returned result (so we get a label of A.B.C)
     return newValue.diff(oldValue).mapKeys { "${prop.name}.${it.key}" }
+}
+
+
+// like simpleMapDiff, but uses the Diffable interface. Use if V is an object
+fun <K, V : Diffable<V>> nestedMapDiff(old : Map<K, V>?, new : Map<K, V>) : Map<K, Map<String, Any?>?> {
+
+    //for each key K, list of changes to value V's properties, by name. inner null = property on object deleted, outer null = object deleted
+    val results = mutableMapOf<K, Map<String, Any?>?>()
+
+    new.forEach {
+        val oldValue = old?.getOrDefault(it.key, null)
+        if (oldValue != it.value) {
+            results[it.key] = it.value.diff(oldValue)
+        }
+    }
+
+    old?.forEach {
+        // delete operation
+        if (it.key !in new) {
+            results[it.key] = null
+        }
+    }
+
+    return results
 }
