@@ -14,7 +14,7 @@ suspend fun main(args: Array<String>) {
     println("Api Key: ")
     val cliniko = ClinikoClient("api.au3.cliniko.com", apiKey = readln())
 
-    val patients = cliniko.getPatients()//params = parametersOf("q[]", "id:=826332652180085831"))
+    val patients = cliniko.getPatients()//params = parametersOf("q[]", "id:=961898501753543892"))
 
     for (patient in patients.values) db.addOrUpdatePatient(patient)
 

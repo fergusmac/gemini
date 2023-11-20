@@ -25,7 +25,7 @@ data class Patient (
     val emergencyContact : Person? = null,
     val billingContact : Person? = null,
     val claimant : Claimant? = null,
-    val events : List<Event> = emptyList() //TODO make map
+    val events : List<Event>? = null //TODO make map
 ) : Diffable<Patient>
 {
 //TODO group leader?
@@ -84,8 +84,6 @@ data class Patient (
         }
     }
 
-    fun findUpdates(existing: Patient?) : Map<String, Any?> = diff(existing)
-
     override fun diff(existing: Patient?): Map<String, Any?> {
 
         val results = mutableMapOf<String, Any?>()
@@ -136,6 +134,8 @@ data class Name (
         else
             "$first $last"
     }
+
+    override fun diff(existing: Name?): Map<String, Any?> = simpleDiff(old=existing, new=this)
 }
 
 data class Address (
@@ -146,13 +146,17 @@ data class Address (
     val city: String?,
     val state: String?,
     val country: String?,
-) : Diffable<Address>
+) : Diffable<Address> {
+    override fun diff(existing: Address?): Map<String, Any?> = simpleDiff(old=existing, new=this)
+}
 
 
 data class MedicareCard (
     val number : Long,
     val irn : Int?
-) : Diffable<MedicareCard>
+) : Diffable<MedicareCard> {
+    override fun diff(existing: MedicareCard?): Map<String, Any?> = simpleDiff(old=existing, new=this)
+}
 
 data class Claimant (
     val person : Person,
@@ -191,6 +195,8 @@ data class Pronouns (
             }
         }
     }
+
+    override fun diff(existing: Pronouns?): Map<String, Any?> = simpleDiff(old=existing, new=this)
 }
 
 data class ClinikoObject (
@@ -199,6 +205,10 @@ data class ClinikoObject (
     val modified : Instant,
     val archived : Instant?
 ) : Diffable<ClinikoObject>
+{
+
+    override fun diff(existing: ClinikoObject?): Map<String, Any?> = simpleDiff(old=existing, new=this)
+}
 
 data class Person (
     val name : Name,
@@ -208,7 +218,7 @@ data class Person (
     val gender : String?,
     val sex : String?,
     val pronouns: Pronouns?,
-    val phones: Map<String, String> // label -> number
+    val phones: Map<String, String>? // label -> number
 ) : Diffable<Person> {
 
     override fun diff(existing: Person?): Map<String, Any?> {
@@ -240,6 +250,9 @@ data class Event (
     val name: String,
     val time: Instant
 ) : Diffable<Event>
+{
+    override fun diff(existing: Event?): Map<String, Any?> = simpleDiff(old=existing, new=this)
+}
 
 
 //By default, instant gets written to Mongo as a String - this lets us write it as a Date instead

@@ -10,8 +10,7 @@ import com.mongodb.client.model.Filters.`in`
 import com.mongodb.client.model.ReplaceOptions
 import com.mongodb.client.model.UpdateOptions
 import com.mongodb.client.model.Updates
-import com.mongodb.client.model.Updates.combine
-import com.mongodb.client.model.Updates.set
+import com.mongodb.client.model.Updates.*
 import com.mongodb.kotlin.client.coroutine.ClientSession
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
@@ -46,7 +45,7 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
             //copy any non-cliniko fields from the existing document (if any)
             val updated = Patient.fromCliniko(clinikoPatient, existing = existing)
 
-            val updatesMap = updated.findUpdates(existing)
+            val updatesMap = updated.diff(existing)
 
             if (updatesMap.isEmpty()) {
                 session.abortTransaction()
@@ -54,7 +53,14 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
             }
 
             val updatesBson = combine(
-                updatesMap.map { set(it.key, it.value) }
+                updatesMap.map {
+                    if(it.value == null) {
+                        unset(it.key)
+                    }
+                    else {
+                        set(it.key, it.value)
+                    }
+                }
             )
 
             patients.updateOne(

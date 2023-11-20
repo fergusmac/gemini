@@ -12,9 +12,11 @@ inline fun <reified T : Any> simpleDiff(old : T?, new : T, skipFields: List<Stri
     for (prop in T::class.declaredMemberProperties) {
         if (prop.name in skipFields) continue
         val newValue = prop.get(new)
-        if (old == null || prop.get(old) != newValue) {
-            results[prop.name] = newValue
-        }
+        val oldValue = old?.let(prop)
+
+        if(oldValue == newValue) continue
+
+        results[prop.name] = newValue
     }
 
     return results
@@ -22,12 +24,13 @@ inline fun <reified T : Any> simpleDiff(old : T?, new : T, skipFields: List<Stri
 
 // like simpleDiff but for maps - return all KVs that have been added, modified or deleted (signified by K = null)
 // this only works for primitive types of V
-fun <K, V> simpleMapDiff(old : Map<K, V>?, new : Map<K, V>) : Map<K, V?> {
+fun <K, V> simpleMapDiff(old : Map<K, V>?, new : Map<K, V>?) : Map<K, V?> {
+
 
     val results = mutableMapOf<K, V?>()
-    if (old.isNullOrEmpty()) return new
+    if (old.isNullOrEmpty()) return new ?: emptyMap()
 
-    new.forEach {
+    new?.forEach {
         // create or modify operation
         if (old.getOrDefault(it.key, null) != it.value) {
             results[it.key] = it.value
@@ -36,7 +39,7 @@ fun <K, V> simpleMapDiff(old : Map<K, V>?, new : Map<K, V>) : Map<K, V?> {
 
     old.forEach {
         // delete operation
-        if (it.key !in new) {
+        if (new?.contains(it.key) != true) {
             results[it.key] = null
         }
     }
@@ -50,12 +53,14 @@ fun <K, V> simpleMapDiff(old : Map<K, V>?, new : Map<K, V>) : Map<K, V?> {
  * The interface allows each level of the recursion to be e.g. a call to simpleDiff or something else
  */
 interface Diffable<T> {
-    fun diff(existing: T?) : Map<String, Any?> = simpleDiff(old=existing, new=this)
+    //can't define a default implementation here, because the compiler can't infer the type of 'this'
+    //we would need to pass in the new T as an argument, which is clunky
+    fun diff(existing: T?) : Map<String, Any?>
 }
 
 // KProperty1<S, T?> means - a property on an object of type S, which is of the type T?
 inline fun <reified S, reified T : Diffable<T>> nestedDiff(old: S?, new: S, prop: KProperty1<S, T?>) : Map<String, Any?> {
-    val oldValue = old?.let { prop.get(it) }
+    val oldValue = old?.let(prop)
 
     // if both new and old are null, return nothing. If new is null but old isnt, return propName -> null
     val newValue = prop.get(new) ?: return if (oldValue == null) emptyMap() else mapOf(prop.name to null)
