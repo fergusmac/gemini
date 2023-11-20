@@ -114,13 +114,6 @@ data class Patient (
 }
 
 
-/**
- * Add all the entries to the map, but add a prefix (ending in a .) to each key
- */
-fun <V> MutableMap<String, V>.putAllPrefixed(prefix: String, other: Map<String, V>) {
-    this.putAll(other.mapKeys { prefix dot it.key })
-}
-
 data class Name (
     val first: String,
     val preferred: String?,
@@ -229,15 +222,11 @@ data class Person (
         results.putAll(nestedDiff(old = existing, new = this, prop = Person::address))
         results.putAll(nestedDiff(old = existing, new = this, prop = Person::pronouns))
 
-        results.putAllPrefixed(Person::phones.name, simpleMapDiff(old = existing?.phones, new = phones))
+        results.putAll(phones.diff(existing?.phones, prefix=Person::phones.name))
 
         results.putAll(
             simpleDiff(existing, this,
-                skipFields = listOf(
-                    Person::name.name,
-                    Person::address.name,
-                    Person::pronouns.name,
-                    Person::phones.name)
+                skipFields = results.map { it.key.firstDot() }
             )
         )
 

@@ -98,7 +98,3 @@ suspend fun MongoClient.transact(func : suspend (ClientSession) -> Unit) {
     startSession().use { it.transact(func) }
 }
 
-
-infix fun String.dot(other: String) : String {
-    return "$this.$other"
-}
