@@ -126,7 +126,6 @@ data class Name (
             "$first $last"
     }
 
-    override fun diff(existing: Name?): Map<String, Any?> = simpleDiff(old=existing, new=this)
 }
 
 data class Address (
@@ -137,9 +136,7 @@ data class Address (
     val city: String?,
     val state: String?,
     val country: String?,
-) : Diffable<Address> {
-    override fun diff(existing: Address?): Map<String, Any?> = simpleDiff(old=existing, new=this)
-}
+) : Diffable<Address>
 
 
 data class MedicareCard (
@@ -153,7 +150,6 @@ data class MedicareCard (
             return MedicareCard(number=num, irn = irn?.toIntOrNull())
         }
     }
-    override fun diff(existing: MedicareCard?): Map<String, Any?> = simpleDiff(old=existing, new=this)
 }
 
 data class Claimant (
@@ -193,8 +189,6 @@ data class Pronouns (
             }
         }
     }
-
-    override fun diff(existing: Pronouns?): Map<String, Any?> = simpleDiff(old=existing, new=this)
 }
 
 data class ClinikoObject (
@@ -203,10 +197,7 @@ data class ClinikoObject (
     val modified : Instant,
     val archived : Instant?
 ) : Diffable<ClinikoObject>
-{
 
-    override fun diff(existing: ClinikoObject?): Map<String, Any?> = simpleDiff(old=existing, new=this)
-}
 
 data class Person (
     val name : Name,
@@ -225,7 +216,7 @@ data class Person (
 
         results.putAll(nestedDiff(old = existing, new = this, prop = Person::name))
         results.putAll(nestedDiff(old = existing, new = this, prop = Person::address))
-        results.putAll(nestedDiff(old = existing, new = this, prop = Person::pronouns))
+        //TODO results.putAll(nestedDiff(old = existing, new = this, prop = Person::pronouns))
 
         results.putAll(phones.diff(existing?.phones, prefix=Person::phones.name))
 
@@ -246,8 +237,5 @@ data class Event (
     val name: String,
     val time: Instant
 ) : Diffable<Event>
-{
-    override fun diff(existing: Event?): Map<String, Any?> = simpleDiff(old=existing, new=this)
-}
 
 

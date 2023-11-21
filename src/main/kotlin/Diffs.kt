@@ -1,6 +1,7 @@
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.isSubclassOf
 
 
 /**
@@ -8,7 +9,7 @@ import kotlin.reflect.full.declaredMemberProperties
  *  If existing is null, return all properties
  *  If we want to 'drill down' to changes within T, need to use nestedDiff
  */
-inline fun <reified T : Any> simpleDiff(old : T?, new : T?, skipFields: List<String> = emptyList()) : MutableMap<String, Any?> {
+inline fun <reified T: Any> simpleDiff(old : T?, new : T?, skipFields: List<String> = emptyList()) : Map<String, Any?> {
     val results = mutableMapOf<String, Any?>()
     for (prop in T::class.declaredMemberProperties) {
         if (prop.name in skipFields) continue
@@ -16,6 +17,12 @@ inline fun <reified T : Any> simpleDiff(old : T?, new : T?, skipFields: List<Str
         val oldValue = old?.let(prop)
 
         if(oldValue == newValue) continue
+
+        if (prop::class.isSubclassOf(Diffable::class)) {
+            val newDiffable = newValue as Diffable<T>?
+            results[prop.name] = newDiffable?.diff(oldValue as T?)
+            continue
+        }
 
         results[prop.name] = newValue
     }
@@ -60,9 +67,8 @@ fun <V> Map<String, V>?.diff(old: Map<String, V>?, prefix: String = "") : Map<St
 
 
 interface Diffable<T> {
-    //can't define a default implementation here, because the compiler can't infer the type of 'this'
-    //we would need to pass in the new obj as an argument, which is clunky
-    fun diff(existing: T?) : Map<String, Any?>
+
+    fun diff(existing: T?) : Map<String, Any?> = simpleDiff(existing, this)
 }
 
 /**
