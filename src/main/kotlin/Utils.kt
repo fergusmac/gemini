@@ -10,14 +10,14 @@ fun String.firstDot() : String {
 /**
  * Add all the entries to the map, but add a prefix (ending in a .) to each key
  */
-fun <V> MutableMap<String, V?>.putAllPrefixed(prefix: String, putMe: Map<String, V>?) {
-    if (putMe == null)
+fun <V> MutableMap<String, V?>.putAllPrefixed(prefix: String, items: Map<String, V>?) {
+    if (items == null)
     {
         this[prefix] = null
         return
     }
 
-    this.putAll(putMe.mapKeys { prefix dot it.key })
+    this.putAll(items.mapKeys { prefix dot it.key })
 }
 
 fun String?.nullIfBlank() : String? {

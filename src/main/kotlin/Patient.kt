@@ -10,6 +10,7 @@ import org.bson.codecs.DecoderContext
 import org.bson.codecs.EncoderContext
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
 data class Patient (
@@ -25,8 +26,8 @@ data class Patient (
     val emergencyContact : Person? = null,
     val billingContact : Person? = null,
     val claimant : Claimant? = null,
-    val events : List<Event>? = null //TODO make map
-) : Diffable<Patient>
+    //TODO events
+)
 {
 //TODO group leader?
 
@@ -76,39 +77,33 @@ data class Patient (
                     emergencyContact = existing?.emergencyContact,
                     billingContact = existing?.billingContact,
                     claimant = existing?.claimant,
-                    events = existing?.events ?: emptyList()
+                    // TODO events = existing?.events ?: emptyList()
                 )
             }
         }
     }
+}
 
-    override fun diff(existing: Patient?): Map<String, Any?> {
+fun Patient?.diff(other : Patient?) : Map<String, Any?>? {
 
-        val results = mutableMapOf<String, Any?>()
+    if (this == other) return emptyMap()
 
-        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::person))
-        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::medicare))
-        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::cliniko))
-        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::emergencyContact))
-        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::billingContact))
-        results.putAll(nestedDiff(old = existing, new = this, prop = Patient::claimant))
+    if (this == null) return null
 
-        results.putAll(
-            simpleDiff(existing, this,
-                skipFields = listOf(
-                    Patient::person.name,
-                    Patient::medicare.name,
-                    Patient::cliniko.name,
-                    Patient::emergencyContact.name,
-                    Patient::billingContact.name,
-                    Patient::claimant.name,
-                    Patient::events.name,  //TODO
-                    Patient::id.name)
-            )
-        )
+    // id is handled specially - but it never changes anyway
+    val skipProps = mutableSetOf(Patient::id.name)
 
-        return results
-    }
+    val results = mutableMapOf<String, Any?>()
+    results.putAllPrefixed(Patient::person.name.also { skipProps.add(it) }, person.diff(other?.person))
+    results.putAllPrefixed(Patient::medicare.name.also { skipProps.add(it) }, medicare.diff(other?.medicare))
+    results.putAllPrefixed(Patient::cliniko.name.also { skipProps.add(it) }, cliniko.diff(other?.cliniko))
+    results.putAllPrefixed(Patient::emergencyContact.name.also { skipProps.add(it) }, emergencyContact.diff(other?.emergencyContact))
+    results.putAllPrefixed(Patient::billingContact.name.also { skipProps.add(it) }, billingContact.diff(other?.billingContact))
+    results.putAllPrefixed(Patient::claimant.name.also { skipProps.add(it) }, claimant.diff(other?.claimant))
+
+    results.putAll(memberDiff(old = other, new = this, skip = skipProps)!!)
+
+    return results
 }
 
 
@@ -116,7 +111,7 @@ data class Name (
     val first: String,
     val preferred: String?,
     val last: String
-) : Diffable<Name>
+)
 {
 
     fun getFull(usePreferred : Boolean = true) : String {
@@ -127,6 +122,7 @@ data class Name (
     }
 
 }
+fun Name?.diff(other : Name?) : Map<String, Any?>? = memberDiff(old = other, new = this)
 
 data class Address (
     val line1: String?,
@@ -136,13 +132,14 @@ data class Address (
     val city: String?,
     val state: String?,
     val country: String?,
-) : Diffable<Address>
+)
+fun Address?.diff(other : Address?) : Map<String, Any?>? = memberDiff(old = other, new = this)
 
 
 data class MedicareCard (
     val number : Long,
     val irn : Int?
-) : Diffable<MedicareCard> {
+) {
 
     companion object {
         fun fromCliniko(number: String?, irn: String?) : MedicareCard? {
@@ -151,22 +148,25 @@ data class MedicareCard (
         }
     }
 }
+fun MedicareCard?.diff(other : MedicareCard?) : Map<String, Any?>? = memberDiff(old = other, new = this)
+
 
 data class Claimant (
     val person : Person,
     val medicare: MedicareCard
-) : Diffable<Claimant>
-{
-    override fun diff(existing: Claimant?): Map<String, Any?> {
+)
+fun Claimant?.diff(other : Claimant?) : Map<String, Any?>? {
 
-        val results = mutableMapOf<String, Any?>()
+    if (this == other) return emptyMap()
 
-        results.putAll(nestedDiff(old = existing, new = this, prop = Claimant::person))
-        results.putAll(nestedDiff(old = existing, new = this, prop = Claimant::medicare))
+    if (this == null) return null
 
-        return results
-    }
+    val results = mutableMapOf<String, Any?>()
+    results.putAllPrefixed(Claimant::medicare.name, medicare.diff(other?.medicare))
+    results.putAllPrefixed(Claimant::person.name, person.diff(other?.person))
+    return results
 }
+
 
 data class Pronouns (
     val they : String, // accusative
@@ -174,7 +174,7 @@ data class Pronouns (
     val their : String, // predicativePossessive
     val theirs : String, // pronominalPossessive
     val themself: String, // reflexive
-) : Diffable<Pronouns>
+)
 {
     companion object {
         fun fromCliniko(clinikoPronouns : cliniko.Pronouns) : Pronouns{
@@ -190,14 +190,16 @@ data class Pronouns (
         }
     }
 }
+fun Pronouns?.diff(other : Pronouns?) : Map<String, Any?>? = memberDiff(old = other, new = this)
+
 
 data class ClinikoObject (
     val id : Long,
     val created : Instant,
     val modified : Instant,
     val archived : Instant?
-) : Diffable<ClinikoObject>
-
+)
+fun ClinikoObject?.diff(other : ClinikoObject?) : Map<String, Any?>? = memberDiff(old = other, new = this)
 
 data class Person (
     val name : Name,
@@ -208,34 +210,30 @@ data class Person (
     val sex : String?,
     val pronouns: Pronouns?,
     val phones: Map<String, String>? // label -> number
-) : Diffable<Person> {
+)
 
-    override fun diff(existing: Person?): Map<String, Any?> {
+fun Person?.diff(other : Person?) : Map<String, Any?>? {
 
-        val results = mutableMapOf<String, Any?>()
+    if (this == other) return emptyMap()
 
-        results.putAll(nestedDiff(old = existing, new = this, prop = Person::name))
-        results.putAll(nestedDiff(old = existing, new = this, prop = Person::address))
-        //TODO results.putAll(nestedDiff(old = existing, new = this, prop = Person::pronouns))
+    if (this == null) return null
 
-        results.putAll(phones.diff(existing?.phones, prefix=Person::phones.name))
+    val skipProps = mutableSetOf<String>()
 
-        // skip all the properties already in results Note that anything unchanged wont be in results,
-        // (and so will be rechecked) but since its unchanged it doesn't matter
-        results.putAll(
-            simpleDiff(old = existing, new = this,
-                skipFields = results.map { it.key.firstDot() }
-            )
-        )
+    val results = mutableMapOf<String, Any?>()
+    results.putAllPrefixed(Person::name.name.also { skipProps.add(it) }, name.diff(other?.name))
+    results.putAllPrefixed(Person::address.name.also { skipProps.add(it) }, address.diff(other?.address))
+    results.putAllPrefixed(Person::pronouns.name.also { skipProps.add(it) }, pronouns.diff(other?.pronouns))
+    results.putAll(mapDiff(name = Person::phones.name.also { skipProps.add(it) }, old = other?.phones, new = this.phones))
 
-        return results
-    }
+    results.putAll(memberDiff(old = other, new = this, skip = skipProps)!!)
+
+    return results
 }
-
 
 data class Event (
     val name: String,
     val time: Instant
-) : Diffable<Event>
-
+)
+fun Event?.diff(other : Event?) : Map<String, Any?>? = memberDiff(old = other, new = this)
 

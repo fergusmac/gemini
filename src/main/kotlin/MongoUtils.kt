@@ -34,11 +34,11 @@ class InstantCodec : Codec<Instant> {
 suspend fun ClientSession.transact(func : suspend (ClientSession) -> Unit) {
     startTransaction()
     try {
-        logger.info { "Transaction started" }
+        logger.debug { "Transaction started" }
         func(this)
         //if abort or commit are called within the func block, this will be skipped
         if (hasActiveTransaction()) commitTransaction()
-        logger.info { "Transaction finished" }
+        logger.debug { "Transaction finished" }
     }
     catch (e: MongoException) {
         logger.error { "Transaction aborted due to error: $e" }

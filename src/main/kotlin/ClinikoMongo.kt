@@ -45,7 +45,7 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
             //copy any non-cliniko fields from the existing document (if any)
             val updated = Patient.fromCliniko(clinikoPatient, existing = existing)
 
-            val updatesMap = updated.diff(existing)
+            val updatesMap = updated.diff(existing)!!
 
             if (updatesMap.isEmpty()) {
                 session.abortTransaction()
@@ -64,6 +64,8 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
                     }
                 }
             )
+
+            println(updatesBson) //TODO
 
             patients.updateOne(
                 filter = eq("_id", updated.id),
