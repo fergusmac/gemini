@@ -52,6 +52,8 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
                 return@transact
             }
 
+            logger.info { "Updating patient ${updated.id} in Mongo" }
+
             val updatesBson = combine(
                 updatesMap.map {
                     if(it.value == null) {
@@ -68,6 +70,8 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
                 update = updatesBson,
                 options = UpdateOptions().upsert(true)
             )
+
+            logger.info { "Finished updating patient ${updated.id} in Mongo" }
         }
     }
 
@@ -80,21 +84,5 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
     }
 }
 
-suspend fun ClientSession.transact(func : suspend (ClientSession) -> Unit) {
-    startTransaction()
-    try {
-        func(this)
-        //if abort or commit are called within the func block, this will be skipped
-        if (hasActiveTransaction()) commitTransaction()
-    }
-    catch (e: MongoException) {
-        logger.error { "Mongo Transaction aborted due to error: $e" }
-        abortTransaction()
-    }
-}
 
-suspend fun MongoClient.transact(func : suspend (ClientSession) -> Unit) {
-    //this closes the session on completion
-    startSession().use { it.transact(func) }
-}
 

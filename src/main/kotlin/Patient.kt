@@ -57,14 +57,12 @@ data class Patient (
                             state = state,
                             country = country
                         ),
-                        gender = genderIdentity,
-                        sex = sex,
+                        gender = genderIdentity?.nullIfBlank(),
+                        sex = sex?.nullIfBlank(),
                         phones = patientPhoneNumbers?.associate { Pair(it.number, it.phoneType) } ?: emptyMap(),
                         pronouns = pronouns?.let { Pronouns.fromCliniko(it) },
                     ),
-                    medicare = medicare?.toLongOrNull()?.let {
-                        MedicareCard(number = it, irn = medicareReferenceNumber?.toIntOrNull())
-                    },
+                    medicare = MedicareCard.fromCliniko(medicare, medicareReferenceNumber),
                     cliniko = ClinikoObject(
                         id = id,
                         created = createdAt,
@@ -148,6 +146,13 @@ data class MedicareCard (
     val number : Long,
     val irn : Int?
 ) : Diffable<MedicareCard> {
+
+    companion object {
+        fun fromCliniko(number: String?, irn: String?) : MedicareCard? {
+            val num = number?.toLongOrNull() ?: return null
+            return MedicareCard(number=num, irn = irn?.toIntOrNull())
+        }
+    }
     override fun diff(existing: MedicareCard?): Map<String, Any?> = simpleDiff(old=existing, new=this)
 }
 
@@ -224,8 +229,10 @@ data class Person (
 
         results.putAll(phones.diff(existing?.phones, prefix=Person::phones.name))
 
+        // skip all the properties already in results Note that anything unchanged wont be in results,
+        // (and so will be rechecked) but since its unchanged it doesn't matter
         results.putAll(
-            simpleDiff(existing, this,
+            simpleDiff(old = existing, new = this,
                 skipFields = results.map { it.key.firstDot() }
             )
         )
@@ -244,21 +251,3 @@ data class Event (
 }
 
 
-//By default, instant gets written to Mongo as a String - this lets us write it as a Date instead
-class InstantCodec : Codec<Instant> {
-    override fun encode(writer: BsonWriter, value: Instant?, encoderContext: EncoderContext?) {
-        if(value == null)
-            writer.writeNull()
-        else
-            writer.writeDateTime(value.toEpochMilliseconds())
-    }
-
-    override fun getEncoderClass(): Class<Instant> {
-        return Instant::class.java
-    }
-
-    override fun decode(reader: BsonReader, decoderContext: DecoderContext?): Instant? {
-        return if (reader.currentBsonType == BsonType.NULL) null else Instant.fromEpochMilliseconds(reader.readDateTime())
-    }
-
-}

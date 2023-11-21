@@ -19,3 +19,7 @@ fun <V> MutableMap<String, V?>.putAllPrefixed(prefix: String, putMe: Map<String,
 
     this.putAll(putMe.mapKeys { prefix dot it.key })
 }
+
+fun String?.nullIfBlank() : String? {
+    return this?.let { it.ifBlank { null } }
+}
