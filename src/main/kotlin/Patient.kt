@@ -190,19 +190,7 @@ data class Person (
     val phones: Map<String, String>? // label -> number
 ) : Diffable
 {
-    override fun diff(other: Any?) : Map<String, Any?>
-    {
-        val results = mutableMapOf<String, Any?>()
-        other as Person?
-
-        results.putAll(mapDiff(name = Person::phones.name, old = other?.phones, new = this.phones))
-
-        //not null because we're recursively being called by memberDiff - it would have already checked that
-        //this field is not being deleted (null result)
-        results.putAll(memberDiff(old = other, new = this, skip = setOf(Person::phones.name))!!)
-
-        return results
-    }
+    override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old=other as Person?, new=this)
 }
 
 data class Event (

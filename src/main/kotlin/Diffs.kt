@@ -1,4 +1,5 @@
 import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.isSubclassOf
 
 inline fun <reified T: Any> memberDiff(old : T?, new : T?, skip : Set<String> = emptySet()) : Map<String, Any?>? {
     val results = mutableMapOf<String, Any?>()
@@ -14,13 +15,19 @@ inline fun <reified T: Any> memberDiff(old : T?, new : T?, skip : Set<String> = 
         val newValue = new.let(prop)
         val oldValue = old?.let(prop)
 
-        if(oldValue == newValue) continue
+        if(oldValue == newValue) continue // no change
 
         assert(oldValue == null || newValue == null || oldValue::class == newValue::class)
 
         if (newValue is Diffable) {
             val propResults = newValue.diff(oldValue)
             results.putAllPrefixed(prefix=prop.name, items=propResults)
+        }
+        else if (newValue is Map<*, *>) {
+            // at runtime we cant infer the types, but *I* know that any Map in here is always
+            // a String to an Any?, so the cast is 'safe'
+            val mapResults = mapDiff(oldValue as Map<String, Any?>?, newValue as Map<String, Any?>, name = prop.name)
+            results.putAll(mapResults)
         }
         else {
             results[prop.name] = newValue
