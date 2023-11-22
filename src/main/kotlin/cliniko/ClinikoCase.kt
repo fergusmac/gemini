@@ -1,0 +1,4 @@
+package cliniko
+
+class ClinikoCase {
+}
