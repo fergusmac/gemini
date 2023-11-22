@@ -44,6 +44,13 @@ fun mapDiff(old: Map<String, Any?>?, new : Map<String, Any?>?,  name: String) : 
             val oldValue = old?.getOrDefault(it.key, null)
             if (oldValue != it.value) {
                 results[it.key] = it.value
+                if (it.value is Diffable) {
+                    val propResults = (it.value as Diffable).diff(oldValue)
+                    results.putAllPrefixed(prefix=it.key, items=propResults)
+                }
+                else {
+                    results[it.key] = it.value
+                }
             }
         }
 

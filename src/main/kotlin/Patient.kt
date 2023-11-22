@@ -27,6 +27,7 @@ data class Patient (
     val emergencyContact : Person? = null,
     val billingContact : Person? = null,
     val claimant : Claimant? = null,
+    //TODO extra contact
     //TODO events
 ) : Diffable
 {
