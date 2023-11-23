@@ -133,8 +133,20 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
         ).associateBy { it.id }
     }
 
-    fun wildcardParam(name: String) : Parameters {
-        return parametersOf("q[]", "$name:*")
+    suspend fun getApptTypes(params: Parameters = parametersOf()) : Map<Long, ClinikoApptType> {
+        return getSection(
+            section= SECTION_APPT_TYPES,
+            itemsProp= ClinikoApptTypeMessage::apptTypes,
+            params=params + wildcardParam("archived_at")
+        ).associateBy { it.id }
+    }
+
+    suspend fun getAttendees(params: Parameters = parametersOf()) : Map<Long, ClinikoAttendee> {
+        return getSection(
+            section= SECTION_ATTENDEES,
+            itemsProp= ClinikoAttendeeMessage::attendees,
+            params=params + wildcardParam("archived_at") + wildcardParam("cancelled_at")
+        ).associateBy { it.id }
     }
 
     suspend inline fun <T, reified Msg> getSection(section : String, itemsProp : KProperty1<Msg, List<T>>, params: Parameters = parametersOf()) : List<T> {
@@ -159,3 +171,6 @@ inline fun <reified T> parseJson(jsonStr: String) : T {
     return json.decodeFromString<T>(jsonStr)
 }
 
+fun wildcardParam(name: String) : Parameters {
+    return parametersOf("q[]", "$name:*")
+}
