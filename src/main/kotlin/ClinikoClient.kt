@@ -1,7 +1,4 @@
-import cliniko.ClinikoAppointment
-import cliniko.ClinikoIndividualAppointmentMessage
-import cliniko.ClinikoPatient
-import cliniko.ClinikoPatientMessage
+import cliniko.*
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.auth.*
@@ -17,11 +14,15 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.math.ceil
+import kotlin.reflect.KProperty
+import kotlin.reflect.KProperty1
 import kotlin.time.Duration.Companion.minutes
 
 
 const val RESULTS_PER_PAGE = 100
 const val SECTION_PATIENTS = "patients"
+const val SECTION_CASES = "patient_cases"
+const val SECTION_CONTACTS = "contacts"
 const val SECTION_APPOINTMENTS = "individual_appointments"
 
 class ClinikoClient(val baseUrl: String, apiKey: String) {
@@ -100,31 +101,46 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
 
     suspend fun getPatients(params: Parameters = parametersOf()) : Map<Long, ClinikoPatient> {
 
-        //wildcard to get both archived and unarchived patients
-        val pages = getPages(listOf("v1", SECTION_PATIENTS), params = params + parametersOf("q[]", "archived_at:*"))
+        return getSection(
+            section=SECTION_PATIENTS,
+            itemsProp=ClinikoPatientMessage::patients,
+            params=params + wildcardParam("archived_at")
+        ).associateBy { it.id }
+    }
 
-        val patients = mutableMapOf<Long, ClinikoPatient>()
-        for (page in pages) {
-            val msg = parseJson<ClinikoPatientMessage>(page)
-            patients.putAll(msg.patients.associateBy { it.id })
-        }
+    suspend fun getContacts(params: Parameters = parametersOf()) : Map<Long, ClinikoContact> {
 
-        return patients
+        return getSection(
+            section=SECTION_CONTACTS,
+            itemsProp=ClinikoContactMessage::contacts,
+            params=params + wildcardParam("archived_at")
+        ).associateBy { it.id }
     }
 
     suspend fun getAppointments(params: Parameters = parametersOf()) : Map<Long, ClinikoAppointment> {
         //this is for individual appts only
 
-        //wildcard to get both archived and unarchived appts, as well as cancelled / not cancelled
-        val pages = getPages(listOf("v1", SECTION_APPOINTMENTS), params = params + parametersOf("q[]", listOf("archived_at:*", "cancelled_at:*")))
+        return getSection(
+            section=SECTION_APPOINTMENTS,
+            itemsProp=ClinikoIndividualAppointmentMessage::individualAppointments,
+            params=params + wildcardParam("archived_at") + wildcardParam("cancelled_at")
+        ).associateBy { it.id }
+    }
 
-        val appts = mutableMapOf<Long, ClinikoAppointment>()
+    fun wildcardParam(name: String) : Parameters {
+        return parametersOf("q[]", "$name:*")
+    }
+
+    suspend inline fun <T, reified Msg> getSection(section : String, itemsProp : KProperty1<Msg, List<T>>, params: Parameters = parametersOf()) : List<T> {
+        val pages = getPages(listOf("v1", section), params = params)
+
+        val results = mutableListOf<T>()
         for (page in pages) {
-            val msg = parseJson<ClinikoIndividualAppointmentMessage>(page)
-            appts.putAll(msg.individualAppointments.associateBy { it.id })
+            val msg = parseJson<Msg>(page)
+            results.addAll(itemsProp.get(msg))
         }
 
-        return appts
+        return results
     }
 }
 

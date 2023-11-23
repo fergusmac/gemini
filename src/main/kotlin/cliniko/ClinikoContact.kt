@@ -25,3 +25,6 @@ data class ClinikoContact(
     val state : String?,
     @SerialName("updated_at") val updatedAt : Instant,
 )
+
+@Serializable
+data class ClinikoContactMessage(val contacts: List<ClinikoContact>)
