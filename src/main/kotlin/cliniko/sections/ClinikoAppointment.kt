@@ -1,19 +1,11 @@
-package cliniko
+package cliniko.sections
 
+import cliniko.LinkField
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-
-@Serializable
-data class Links (
-    val self : String
-)
-
-@Serializable
-data class LinkField(
-    val links : Links
-)
+const val SECTION_APPOINTMENTS = "individual_appointments"
 
 @Serializable
 data class ClinikoAppointment(
@@ -39,5 +31,5 @@ data class ClinikoAppointment(
 )
 
 @Serializable
-data class ClinikoIndividualAppointmentMessage( @SerialName("individual_appointments") val individualAppointments: List<ClinikoAppointment>)
+data class ClinikoAppointmentMessage(@SerialName("individual_appointments") val appointments: List<ClinikoAppointment>)
 

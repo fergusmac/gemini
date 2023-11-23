@@ -1,24 +1,16 @@
-import cliniko.ClinikoPatient
-import com.mongodb.ClientSessionOptions
+import cliniko.sections.ClinikoPatient
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
-import com.mongodb.MongoException
-import com.mongodb.TransactionOptions
-import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Filters.eq
 import com.mongodb.client.model.Filters.`in`
-import com.mongodb.client.model.ReplaceOptions
 import com.mongodb.client.model.UpdateOptions
-import com.mongodb.client.model.Updates
 import com.mongodb.client.model.Updates.*
-import com.mongodb.kotlin.client.coroutine.ClientSession
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import org.bson.codecs.configuration.CodecRegistries
-import kotlin.reflect.KCallable
 
 private val logger = KotlinLogging.logger {}
 class ClinikoMongo (connectionString: ConnectionString, val databaseName : String) {

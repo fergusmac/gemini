@@ -1,17 +1,8 @@
-import cliniko.ClinikoPatient
-import kotlin.reflect.full.declaredMemberProperties
+import cliniko.sections.ClinikoPatient
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import org.bson.BsonReader
-import org.bson.BsonType
-import org.bson.BsonWriter
-import org.bson.codecs.Codec
-import org.bson.codecs.DecoderContext
-import org.bson.codecs.EncoderContext
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
 
 
 data class Patient (
@@ -153,7 +144,7 @@ data class Pronouns (
 ) : Diffable
 {
     companion object {
-        fun fromCliniko(clinikoPronouns: cliniko.Pronouns): Pronouns {
+        fun fromCliniko(clinikoPronouns: cliniko.sections.Pronouns): Pronouns {
             with(clinikoPronouns) {
                 return Pronouns(
                     they = nominative,

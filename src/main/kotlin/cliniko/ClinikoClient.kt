@@ -1,4 +1,7 @@
-import cliniko.*
+package cliniko
+
+import RateLimiter
+import cliniko.sections.*
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.auth.*
@@ -10,20 +13,14 @@ import io.ktor.http.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.math.ceil
-import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 import kotlin.time.Duration.Companion.minutes
 
 
 const val RESULTS_PER_PAGE = 100
-const val SECTION_PATIENTS = "patients"
-const val SECTION_CASES = "patient_cases"
-const val SECTION_CONTACTS = "contacts"
-const val SECTION_APPOINTMENTS = "individual_appointments"
+
 
 class ClinikoClient(val baseUrl: String, apiKey: String) {
 
@@ -102,8 +99,8 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
     suspend fun getPatients(params: Parameters = parametersOf()) : Map<Long, ClinikoPatient> {
 
         return getSection(
-            section=SECTION_PATIENTS,
-            itemsProp=ClinikoPatientMessage::patients,
+            section= SECTION_PATIENTS,
+            itemsProp= ClinikoPatientMessage::patients,
             params=params + wildcardParam("archived_at")
         ).associateBy { it.id }
     }
@@ -111,8 +108,17 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
     suspend fun getContacts(params: Parameters = parametersOf()) : Map<Long, ClinikoContact> {
 
         return getSection(
-            section=SECTION_CONTACTS,
-            itemsProp=ClinikoContactMessage::contacts,
+            section= SECTION_CONTACTS,
+            itemsProp= ClinikoContactMessage::contacts,
+            params=params + wildcardParam("archived_at")
+        ).associateBy { it.id }
+    }
+
+    suspend fun getCases(params: Parameters = parametersOf()) : Map<Long, ClinikoCase> {
+
+        return getSection(
+            section= SECTION_CASES,
+            itemsProp= ClinikoCaseMessage::patient_cases,
             params=params + wildcardParam("archived_at")
         ).associateBy { it.id }
     }
@@ -121,8 +127,8 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
         //this is for individual appts only
 
         return getSection(
-            section=SECTION_APPOINTMENTS,
-            itemsProp=ClinikoIndividualAppointmentMessage::individualAppointments,
+            section= SECTION_APPOINTMENTS,
+            itemsProp= ClinikoAppointmentMessage::appointments,
             params=params + wildcardParam("archived_at") + wildcardParam("cancelled_at")
         ).associateBy { it.id }
     }
@@ -153,7 +159,3 @@ inline fun <reified T> parseJson(jsonStr: String) : T {
     return json.decodeFromString<T>(jsonStr)
 }
 
-@Serializable
-data class ClinikoGenericMessage(
-    @SerialName("total_entries") val totalEntries: Int
-)

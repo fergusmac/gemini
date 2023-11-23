@@ -1,9 +1,12 @@
-package cliniko
+package cliniko.sections
 
+import cliniko.PhoneNumber
 import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
+
+const val SECTION_CONTACTS = "contacts"
 
 @Serializable
 data class ClinikoContact(
