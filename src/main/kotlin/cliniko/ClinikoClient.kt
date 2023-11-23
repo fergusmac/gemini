@@ -149,6 +149,22 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
         ).associateBy { it.id }
     }
 
+    suspend fun getBusinesses(params: Parameters = parametersOf()) : Map<Long, ClinikoBusiness> {
+        return getSection(
+            section= SECTION_BUSINESSES,
+            itemsProp= ClinikoBusinessMessage::businesses,
+            params=params + wildcardParam("archived_at")
+        ).associateBy { it.id }
+    }
+
+    suspend fun getAvailabilities(params: Parameters = parametersOf()) : Map<Long, ClinikoAvailability> {
+        return getSection(
+            section= SECTION_AVAILABILITY,
+            itemsProp= ClinikoAvailabilityMessage::availabilities,
+            params=params
+        ).associateBy { it.id }
+    }
+
     suspend inline fun <T, reified Msg> getSection(section : String, itemsProp : KProperty1<Msg, List<T>>, params: Parameters = parametersOf()) : List<T> {
         val pages = getPages(listOf("v1", section), params = params)
 
