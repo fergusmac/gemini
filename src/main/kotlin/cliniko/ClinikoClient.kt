@@ -118,7 +118,7 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
 
         return getSection(
             section= SECTION_CASES,
-            itemsProp= ClinikoCaseMessage::patient_cases,
+            itemsProp= ClinikoCaseMessage::patientCases,
             params=params + wildcardParam("archived_at")
         ).associateBy { it.id }
     }
@@ -168,7 +168,7 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
     suspend fun getPractitioners(params: Parameters = parametersOf()) : Map<Long, ClinikoPractitioner> {
         return getSection(
             section= SECTION_PRACTITIONERS,
-            itemsProp= ClinikoPractMessage::practs,
+            itemsProp= ClinikoPractMessage::practitioners,
             params=params
         ).associateBy { it.id }
     }
@@ -178,6 +178,30 @@ class ClinikoClient(val baseUrl: String, apiKey: String) {
             section= SECTION_PRACT_NUMBERS,
             itemsProp= ClinikoPractNumMessage::numbers,
             params=params
+        ).associateBy { it.id }
+    }
+
+    suspend fun getUsers(params: Parameters = parametersOf()) : Map<Long, ClinikoUser> {
+        return getSection(
+            section= SECTION_USERS,
+            itemsProp= ClinikoUserMessage::users,
+            params=params
+        ).associateBy { it.id }
+    }
+
+    suspend fun getUnavailabilities(params: Parameters = parametersOf()) : Map<Long, ClinikoUnavailability> {
+        return getSection(
+            section= SECTION_UNAVAILABILITIES,
+            itemsProp= ClinikoUnavailabilityMessage::unavailabilities,
+            params=params + wildcardParam("deleted_at")
+        ).associateBy { it.id }
+    }
+
+    suspend fun getGroupAppts(params: Parameters = parametersOf()) : Map<Long, ClinikoGroupAppt> {
+        return getSection(
+            section= SECTION_GROUP_APPTS,
+            itemsProp= ClinikoGroupApptMessage::appointments,
+            params=params + wildcardParam("archived_at")
         ).associateBy { it.id }
     }
 

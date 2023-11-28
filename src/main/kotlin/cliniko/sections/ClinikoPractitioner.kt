@@ -1,7 +1,6 @@
 package cliniko.sections
 
 import cliniko.LinkField
-import cliniko.PhoneNumber
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -22,4 +21,4 @@ data class ClinikoPractitioner(
 )
 
 @Serializable
-data class ClinikoPractMessage(val practs: List<ClinikoPractitioner>)
+data class ClinikoPractMessage(val practitioners: List<ClinikoPractitioner>)

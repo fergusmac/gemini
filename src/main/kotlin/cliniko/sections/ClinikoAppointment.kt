@@ -31,5 +31,5 @@ data class ClinikoAppointment(
 )
 
 @Serializable
-data class ClinikoAppointmentMessage(@SerialName("individual_appointments") val appointments: List<ClinikoAppointment>)
+data class ClinikoAppointmentMessage(@SerialName(SECTION_APPOINTMENTS) val appointments: List<ClinikoAppointment>)
 

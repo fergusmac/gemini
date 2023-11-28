@@ -14,4 +14,4 @@ class ClinikoApptType (
     )
 
 @Serializable
-class ClinikoApptTypeMessage(@SerialName("appointment_types") val apptTypes: List<ClinikoApptType>)
+class ClinikoApptTypeMessage(@SerialName(SECTION_APPT_TYPES) val apptTypes: List<ClinikoApptType>)

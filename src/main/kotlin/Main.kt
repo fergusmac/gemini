@@ -14,8 +14,19 @@ suspend fun main(args: Array<String>) {
     println("Api Key: ")
     val cliniko = ClinikoClient("api.au3.cliniko.com", apiKey = readln())
 
-    //val patients = cliniko.getPatients()//params = parametersOf("q[]", "id:=826332652180085831"))
-    val contacts = cliniko.getContacts()
+    cliniko.getPatients()//params = parametersOf("q[]", "id:=826332652180085831"))
+    cliniko.getContacts()
+    cliniko.getAppointments()
+    cliniko.getGroupAppts()
+    cliniko.getUsers()
+    cliniko.getUnavailabilities()
+    cliniko.getAttendees()
+    cliniko.getApptTypes()
+    cliniko.getAvailabilities()
+    cliniko.getGroupAppts()
+    cliniko.getPractitioners()
+    cliniko.getPractNumbers()
+    cliniko.getBusinesses()
 
     //for (patient in patients.values) db.addOrUpdatePatient(patient)
 

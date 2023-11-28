@@ -5,7 +5,6 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.io.Serial
 
 const val SECTION_AVAILABILITY = "daily_availabilities"
 
@@ -24,4 +23,4 @@ class ClinikoAvailability (
 )
 
 @Serializable
-class ClinikoAvailabilityMessage(@SerialName("daily_availabilities") val availabilities: List<ClinikoAvailability>)
+class ClinikoAvailabilityMessage(@SerialName(SECTION_AVAILABILITY) val availabilities: List<ClinikoAvailability>)

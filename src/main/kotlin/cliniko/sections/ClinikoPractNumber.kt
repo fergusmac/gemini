@@ -21,4 +21,4 @@ data class ClinikoPractNumber(
 )
 
 @Serializable
-data class ClinikoPractNumMessage(val numbers: List<ClinikoPractNumber>)
+data class ClinikoPractNumMessage(@SerialName(SECTION_PRACT_NUMBERS) val numbers: List<ClinikoPractNumber>)
