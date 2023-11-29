@@ -58,7 +58,7 @@ data class Patient (
                         ),
                         gender = genderIdentity?.nullIfBlank(),
                         sex = sex?.nullIfBlank(),
-                        phones = patientPhoneNumbers?.associate { Pair(it.number, it.phoneType) } ?: emptyMap(),
+                        phones = phonesFromCliniko(patientPhoneNumbers),
                         pronouns = pronouns?.let { Pronouns.fromCliniko(it) },
                     ),
                     medicare = MedicareCard.fromCliniko(medicare, medicareReferenceNumber),
@@ -81,7 +81,8 @@ data class Patient (
         }
     }
 
-    override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Patient?, new = this)
+    //skip id as it will already be set when inserted into mongo and including it again will duplicate it
+    override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Patient?, new = this, skip=setOf("id"))
 }
 
 

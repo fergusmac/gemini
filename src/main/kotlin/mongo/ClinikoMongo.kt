@@ -2,6 +2,7 @@ package mongo
 
 import cliniko.sections.ClinikoPatient
 import cliniko.sections.ClinikoPractitioner
+import cliniko.sections.ClinikoUser
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.client.model.Filters.eq
@@ -83,6 +84,35 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
         }
     }
 
+    suspend fun updatePractWithUser(clinikoUser: ClinikoUser) {
+        client.transact { session ->
+
+            val pract = getPractByUser(clinikoUser.id)
+
+            if (pract == null) {
+                // pract hasn't yet been seen by mongo, try again later to add the user
+                session.abortTransaction()
+                return@transact
+            }
+
+            //copy any non-cliniko fields from the existing document (if any)
+            val updated = Practitioner.combineUser(clinikoUser = clinikoUser, pract = pract)
+
+            val updatesMap = updated.diff(pract)!!
+
+            if (updatesMap.isEmpty()) {
+                session.abortTransaction()
+                return@transact
+            }
+
+            logger.info { "Updating pract ${updated.id} with user row ${clinikoUser.id} in Mongo" }
+
+            upsertOne(practs, updated.id, updatesMap)
+
+            logger.info { "Finished updating pract ${updated.id} with user row ${clinikoUser.id} in Mongo" }
+        }
+    }
+
     suspend fun <T : Any> upsertOne(collection : MongoCollection<T>, id : ObjectId, updatesMap: Map<String, Any?>) {
         val updatesBson = combine(
             updatesMap.map {
@@ -113,7 +143,11 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
     }
 
     suspend fun getPract(clinikoId : Long) : Practitioner? {
-        return practs.find(eq("cliniko.id", clinikoId)).firstOrNull()
+        return practs.find(eq("clinikoPract.id", clinikoId)).firstOrNull()
+    }
+
+    suspend fun getPractByUser(clinikoUserId: Long) : Practitioner? {
+        return practs.find(eq("clinikoUser.id", clinikoUserId)).firstOrNull()
     }
 
     suspend fun getPracts() : List<Practitioner> {

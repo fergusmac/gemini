@@ -12,7 +12,14 @@ data class PhoneNumber(
 @Serializable
 data class Links (
     val self : String
-)
+) {
+
+    fun toId() : Long?
+    {
+        //assume the form e.g. https://api.au1.cliniko.com/v1/practitioners/1
+        return self.split('/').last().toLongOrNull()
+    }
+}
 
 @Serializable
 data class LinkField(

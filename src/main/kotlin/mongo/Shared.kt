@@ -1,6 +1,7 @@
 package mongo
 
 import Diffable
+import cliniko.PhoneNumber
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import memberDiff
@@ -37,8 +38,8 @@ data class Address (
 
 data class ClinikoObject (
     val id : Long,
-    val created : Instant,
-    val modified : Instant,
+    val created : Instant? = null,
+    val modified : Instant? = null,
     val archived : Instant? = null
 ) : Diffable
 {
@@ -90,4 +91,9 @@ data class Event (
 ) : Diffable
 {
     override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old = other as Event?, new = this)
+}
+
+fun phonesFromCliniko(clinikoPhones : List<PhoneNumber>?) : Map<String, String> {
+    //map number -> type
+    return clinikoPhones?.associate { Pair(it.number, it.phoneType) } ?: emptyMap()
 }

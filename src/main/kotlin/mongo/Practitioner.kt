@@ -2,6 +2,7 @@ package mongo
 
 import Diffable
 import cliniko.sections.ClinikoPractitioner
+import cliniko.sections.ClinikoUser
 import memberDiff
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
@@ -9,7 +10,9 @@ import org.bson.types.ObjectId
 data class Practitioner (
     @BsonId val id: ObjectId,
     val label : String,
-    val cliniko : ClinikoObject,
+    val title : String?,
+    val clinikoPract : ClinikoObject?,
+    val clinikoUser : ClinikoObject?,
     val person : Person,
     val isActive : Boolean,
     var providerNumber : String?,
@@ -36,11 +39,16 @@ data class Practitioner (
                 return Practitioner(
                     id = existing?.id ?: ObjectId(),
                     label = name.getFull(),
-                    cliniko = ClinikoObject(
+                    title = designation,
+                    clinikoPract = ClinikoObject(
                         id = id,
                         created = createdAt,
                         modified = updatedAt,
                     ),
+                    //if user not already linked, grab the user id from the pract
+                    clinikoUser = existing?.clinikoUser ?: user.links.toId()?.let {
+                        ClinikoObject(id= it)
+                    },
                     person = Person(
                         name = name,
                         email = existing?.person?.email,
@@ -58,7 +66,26 @@ data class Practitioner (
                 )
             }
         }
+
+        fun combineUser(clinikoUser: ClinikoUser, pract : Practitioner) : Practitioner {
+            // return a copy with the user updated
+            with (clinikoUser) {
+                return pract.copy(
+                    clinikoUser = ClinikoObject(
+                        id = id,
+                        created = createdAt,
+                        modified = updatedAt
+                    ),
+                    person = pract.person.copy(
+                        email = email,
+                        phones = phonesFromCliniko(phoneNumbers)
+                        ),
+                )
+            }
+
+        }
     }
 
-    override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Practitioner?, new = this)
+    //skip id as it will already be set when inserted into mongo and including it again will duplicate it
+    override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Practitioner?, new = this, skip=setOf("id"))
 }
