@@ -1,3 +1,5 @@
+package mongo
+
 import com.mongodb.MongoException
 import com.mongodb.kotlin.client.coroutine.ClientSession
 import com.mongodb.kotlin.client.coroutine.MongoClient
