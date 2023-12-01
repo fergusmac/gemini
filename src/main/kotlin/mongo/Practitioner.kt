@@ -1,6 +1,7 @@
 package mongo
 
 import Diffable
+import cliniko.sections.ClinikoPractNumber
 import cliniko.sections.ClinikoPractitioner
 import cliniko.sections.ClinikoUser
 import memberDiff
@@ -15,8 +16,8 @@ data class Practitioner (
     val clinikoUser : ClinikoObject?,
     val person : Person,
     val isActive : Boolean,
-    var providerNumber : String?,
-    var abn : String?,
+    var providerNumber : PractitionerNumber?,
+    var abn : PractitionerNumber?,
     val houseFeePercent: Int?,
     val stripeAccount : String?,
     val xeroContactId : String?,
@@ -84,8 +85,46 @@ data class Practitioner (
             }
 
         }
+
+        fun combineRefNumber(clinikoNumber : ClinikoPractNumber, pract : Practitioner) : Practitioner {
+            // return a copy with the reference number updated
+            // TODO handle multiple PRNs
+
+            with (clinikoNumber) {
+                if (referenceNumber == null) return pract
+
+                val practNumber = PractitionerNumber(
+                    id = referenceNumber,
+                    description = name ?: "",
+                    cliniko = ClinikoObject(
+                        id = id,
+                        created = createdAt,
+                        modified = updatedAt
+                    )
+                )
+
+                return if (name == "Provider #") {
+                    pract.copy(providerNumber = practNumber)
+                }
+                else if (name == "ABN") {
+                    pract.copy(abn = practNumber)
+                }
+                else {
+                    //ignore this number
+                    pract
+                }
+
+            }
+        }
     }
 
     //skip id as it will already be set when inserted into mongo and including it again will duplicate it
     override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Practitioner?, new = this, skip=setOf("id"))
 }
+
+
+data class PractitionerNumber (
+    val id : String,
+    val description: String,
+    val cliniko : ClinikoObject
+)

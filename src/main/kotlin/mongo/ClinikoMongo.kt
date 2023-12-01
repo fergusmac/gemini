@@ -1,6 +1,7 @@
 package mongo
 
 import cliniko.sections.ClinikoPatient
+import cliniko.sections.ClinikoPractNumber
 import cliniko.sections.ClinikoPractitioner
 import cliniko.sections.ClinikoUser
 import com.mongodb.ConnectionString
@@ -95,7 +96,6 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
                 return@transact
             }
 
-            //copy any non-cliniko fields from the existing document (if any)
             val updated = Practitioner.combineUser(clinikoUser = clinikoUser, pract = pract)
 
             val updatesMap = updated.diff(pract)!!
@@ -110,6 +110,42 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
             upsertOne(practs, updated.id, updatesMap)
 
             logger.info { "Finished updating pract ${updated.id} with user row ${clinikoUser.id} in Mongo" }
+        }
+    }
+
+    suspend fun updatePractWithNumber(clinikoNumber: ClinikoPractNumber) {
+        client.transact { session ->
+
+            val practId = clinikoNumber.practitioner.links.toId()
+            if (practId == null) {
+                //shouldn't ever happen
+                logger.error { "Received practitionerReferenceNumber ${clinikoNumber.id} with no practitionerId" }
+                session.abortTransaction()
+                return@transact
+            }
+
+            val pract = getPract(practId)
+
+            if (pract == null) {
+                // pract hasn't yet been seen by mongo, try again later to add
+                session.abortTransaction()
+                return@transact
+            }
+
+            val updated = Practitioner.combineRefNumber(clinikoNumber = clinikoNumber, pract = pract)
+
+            val updatesMap = updated.diff(pract)!!
+
+            if (updatesMap.isEmpty()) {
+                session.abortTransaction()
+                return@transact
+            }
+
+            logger.info { "Updating pract ${updated.id} with practReferenceNumber row ${clinikoNumber.id} in Mongo" }
+
+            upsertOne(practs, updated.id, updatesMap)
+
+            logger.info { "Finished updating pract ${updated.id} with practReferenceNumber row ${clinikoNumber.id} in Mongo" }
         }
     }
 

@@ -25,12 +25,13 @@ suspend fun main(args: Array<String>) {
     cliniko.getGroupAppts()*/
     val practs = cliniko.getPractitioners()
     val users = cliniko.getUsers()
-    /*cliniko.getPractNumbers()
-    cliniko.getBusinesses()*/
+    val prns = cliniko.getPractNumbers()
+    //cliniko.getBusinesses()
 
     for (patient in patients.values) db.addOrUpdatePatient(patient)
     for (pract in practs.values) db.addOrUpdatePract(pract)
     for (user in users.values) db.updatePractWithUser(user)
+    for (prn in prns.values) db.updatePractWithNumber(prn)
 
     //val appts = cliniko.getAppointments()
     //println(appts.size)
