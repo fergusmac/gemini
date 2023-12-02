@@ -14,6 +14,7 @@ suspend fun main(args: Array<String>) {
     val cliniko = ClinikoClient("api.au3.cliniko.com", apiKey = readln())
 
     val patients = cliniko.getPatients()//params = parametersOf("q[]", "id:=826332652180085831"))
+    val cases = cliniko.getCases()
     /*cliniko.getContacts()
     cliniko.getAppointments()
     cliniko.getGroupAppts()
@@ -23,15 +24,17 @@ suspend fun main(args: Array<String>) {
     cliniko.getApptTypes()
     cliniko.getAvailabilities()
     cliniko.getGroupAppts()*/
-    val practs = cliniko.getPractitioners()
-    val users = cliniko.getUsers()
-    val prns = cliniko.getPractNumbers()
+    //val practs = cliniko.getPractitioners()
+    //val users = cliniko.getUsers()
+    //val prns = cliniko.getPractNumbers()
     //cliniko.getBusinesses()
 
-    for (patient in patients.values) db.addOrUpdatePatient(patient)
-    for (pract in practs.values) db.addOrUpdatePract(pract)
+
+    patients.values.forEach { db.addOrUpdatePatient(it) }
+    cases.values.forEach { db.updatePatientWithCase(it) }
+    /*for (pract in practs.values) db.addOrUpdatePract(pract)
     for (user in users.values) db.updatePractWithUser(user)
-    for (prn in prns.values) db.updatePractWithNumber(prn)
+    for (prn in prns.values) db.updatePractWithNumber(prn)*/
 
     //val appts = cliniko.getAppointments()
     //println(appts.size)

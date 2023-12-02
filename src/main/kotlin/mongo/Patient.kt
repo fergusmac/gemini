@@ -1,7 +1,9 @@
 package mongo
 
 import Diffable
+import cliniko.sections.ClinikoCase
 import cliniko.sections.ClinikoPatient
+import cliniko.sections.ClinikoUser
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import memberDiff
@@ -23,6 +25,7 @@ data class Patient (
     val emergencyContact : Person? = null,
     val billingContact : Person? = null,
     val claimant : Claimant? = null,
+    val referrals : Map<String, Referral>? = emptyMap() //clinikoId (as string) -> Referral
     //TODO extra contact
     //TODO events
 ) : Diffable
@@ -79,6 +82,20 @@ data class Patient (
                 )
             }
         }
+
+        fun combineCase(clinikoCase: ClinikoCase, patient : Patient) : Patient {
+            // return a copy with the case added/updated
+            with (clinikoCase) {
+                val existingReferral = patient.referrals?.getOrDefault(clinikoCase.id.toString(), null)
+                val allReferrals = patient.referrals?.toMutableMap() ?: mutableMapOf()
+
+                val newReferral = Referral.fromCliniko(clinikoCase = clinikoCase, existing = existingReferral)
+                allReferrals[newReferral.cliniko.id.toString()] = newReferral
+
+                return patient.copy(referrals = allReferrals)
+            }
+
+        }
     }
 
     //skip id as it will already be set when inserted into mongo and including it again will duplicate it
@@ -110,3 +127,43 @@ data class Claimant (
     override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old = other as Claimant?, new = this)
 }
 
+
+data class Referral (
+    val id: ObjectId,
+    val cliniko : ClinikoObject,
+    val name : String,
+    val referralType : String,
+    val referralDate : LocalDate?,
+    val expiryDate : LocalDate?,
+    val maxAppointments : Int?,
+    val closedInCliniko : Boolean,
+    val status : String,
+    //TODO appointment ids?
+    val clinikoContactId : Long?,
+) : Diffable {
+
+    companion object {
+        fun fromCliniko(clinikoCase : ClinikoCase, existing : Referral?) : Referral {
+            with (clinikoCase) {
+                return Referral(
+                    id = existing?.id ?: ObjectId(),
+                    cliniko = ClinikoObject(
+                        id = id,
+                        created = createdAt,
+                        modified = updatedAt,
+                        archived = archivedAt
+                    ),
+                    name = name,
+                    referralType = "", //TODO
+                    referralDate = issueDate,
+                    expiryDate = expiryDate,
+                    maxAppointments = maxSessions,
+                    closedInCliniko = closed,
+                    status = "", //TODO
+                    clinikoContactId = contact?.links?.toId()
+                )
+            }
+        }
+    }
+    override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old = other as Referral?, new = this)
+}

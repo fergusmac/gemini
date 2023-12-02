@@ -1,9 +1,6 @@
 package mongo
 
-import cliniko.sections.ClinikoPatient
-import cliniko.sections.ClinikoPractNumber
-import cliniko.sections.ClinikoPractitioner
-import cliniko.sections.ClinikoUser
+import cliniko.sections.*
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.client.model.Filters.eq
@@ -58,6 +55,41 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
             upsertOne(patients, updated.id, updatesMap)
 
             logger.info { "Finished updating patient ${updated.id} in Mongo" }
+        }
+    }
+
+    suspend fun updatePatientWithCase(clinikoCase: ClinikoCase) {
+
+        val patientId = clinikoCase.patient.links.toId()
+        if (patientId == null) {
+            logger.error { "No patient id found on case ${clinikoCase.id}" }
+            return
+        }
+
+        client.transact { session ->
+
+            val patient = getPatient(patientId)
+
+            if (patient == null) {
+                // patient hasn't yet been seen by mongo, try again later
+                session.abortTransaction()
+                return@transact
+            }
+
+            val updated = Patient.combineCase(clinikoCase=clinikoCase, patient=patient)
+
+            val updatesMap = updated.diff(patient)!!
+
+            if (updatesMap.isEmpty()) {
+                session.abortTransaction()
+                return@transact
+            }
+
+            logger.info { "Updating patient ${updated.id} with case row ${clinikoCase.id} in Mongo" }
+
+            upsertOne(patients, updated.id, updatesMap)
+
+            logger.info { "Finished updating patient ${updated.id} with case row ${clinikoCase.id} in Mongo" }
         }
     }
 

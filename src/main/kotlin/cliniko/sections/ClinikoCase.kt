@@ -16,7 +16,7 @@ class ClinikoCase (
     @SerialName("created_at") val createdAt : Instant,
     @SerialName("updated_at") val updatedAt : Instant,
     val closed: Boolean,
-    val contact: LinkField,
+    val contact: LinkField? = null,
     @SerialName("expiry_date") val expiryDate : LocalDate?,
     @SerialName("issue_date") val issueDate : LocalDate?,
     @SerialName("max_sessions") val maxSessions : Int?,
