@@ -13,8 +13,8 @@ suspend fun main(args: Array<String>) {
     println("Api Key: ")
     val cliniko = ClinikoClient("api.au3.cliniko.com", apiKey = readln())
 
-    val patients = cliniko.getPatients()//params = parametersOf("q[]", "id:=826332652180085831"))
-    val cases = cliniko.getCases()
+    //val patients = cliniko.getPatients()//params = parametersOf("q[]", "id:=826332652180085831"))
+    //val cases = cliniko.getCases()
     /*cliniko.getContacts()
     cliniko.getAppointments()
     cliniko.getGroupAppts()
@@ -24,16 +24,17 @@ suspend fun main(args: Array<String>) {
     cliniko.getApptTypes()
     cliniko.getAvailabilities()
     cliniko.getGroupAppts()*/
-    //val practs = cliniko.getPractitioners()
+    val practs = cliniko.getPractitioners()
     //val users = cliniko.getUsers()
     //val prns = cliniko.getPractNumbers()
     //cliniko.getBusinesses()
 
 
-    patients.values.forEach { db.addOrUpdatePatient(it) }
-    cases.values.forEach { db.updatePatientWithCase(it) }
-    /*for (pract in practs.values) db.addOrUpdatePract(pract)
-    for (user in users.values) db.updatePractWithUser(user)
+    //patients.values.forEach { db.addOrUpdatePatient(it) }
+    //TODO hmmm, it seems to update the cases in full each time?
+    //cases.values.forEach { db.updatePatientWithCase(it) }
+    for (pract in practs.values) db.addOrUpdatePract(pract)
+    /*for (user in users.values) db.updatePractWithUser(user)
     for (prn in prns.values) db.updatePractWithNumber(prn)*/
 
     //val appts = cliniko.getAppointments()

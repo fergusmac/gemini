@@ -33,6 +33,34 @@ class InstantCodec : Codec<Instant> {
 
 }
 
+//generic codec to store an enum as a string
+class EnumCodec<T : Enum<T>> (private val clazz : Class<T>) : Codec<T> {
+    override fun encode(writer: BsonWriter, value: T?, encoderContext: EncoderContext?) {
+        if(value == null)
+            writer.writeNull()
+        else
+            writer.writeString(value.name)
+    }
+
+    override fun getEncoderClass(): Class<T> {
+        return clazz
+    }
+
+    override fun decode(reader: BsonReader, decoderContext: DecoderContext?): T? {
+        return if (reader.currentBsonType == BsonType.NULL) null
+        else
+        {
+            val str = reader.readString()
+            clazz.enumConstants?.find { it.name == str }
+        }
+    }
+
+    companion object {
+        //need to call this inline builder function to instantiate, as we have to pass in a reified T
+        inline fun <reified T: Enum<T>> buildCodec() = EnumCodec(T::class.java)
+    }
+}
+
 suspend fun ClientSession.transact(func : suspend (ClientSession) -> Unit) {
     startTransaction()
     try {

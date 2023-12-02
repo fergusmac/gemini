@@ -24,7 +24,11 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
 
 
     val codecRegistry = CodecRegistries.fromRegistries(
-        CodecRegistries.fromCodecs(InstantCodec()),
+        CodecRegistries.fromCodecs(
+            InstantCodec(),
+            EnumCodec.buildCodec<CancellationType>(),
+            EnumCodec.buildCodec<PractitionerKind>()
+        ),
         MongoClientSettings.getDefaultCodecRegistry()
     )
 

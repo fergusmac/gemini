@@ -13,6 +13,7 @@ data class ClinikoAppointment(
     val id : Long,
     @SerialName("archived_at") val archivedAt : Instant?,
     val business : LinkField,
+    @SerialName("booking_ip_address") val bookingIpAddress : String?,
     @SerialName("cancellation_note") val cancellationNote: String?,
     @SerialName("cancellation_reason_description") val cancellationReasonDescription : String?,
     @SerialName("cancelled_at") val cancelledAt : Instant?,

@@ -11,7 +11,7 @@ import org.bson.types.ObjectId
 data class Practitioner (
     @BsonId val id: ObjectId,
     val label : String,
-    val title : String?,
+    val kind : PractitionerKind?,
     val clinikoPract : ClinikoObject?,
     val clinikoUser : ClinikoObject?,
     val person : Person,
@@ -40,7 +40,7 @@ data class Practitioner (
                 return Practitioner(
                     id = existing?.id ?: ObjectId(),
                     label = name.getFull(),
-                    title = designation,
+                    kind = PractitionerKind.fromString(designation),
                     clinikoPract = ClinikoObject(
                         id = id,
                         created = createdAt,
@@ -128,3 +128,19 @@ data class PractitionerNumber (
     val description: String,
     val cliniko : ClinikoObject
 )
+
+
+enum class PractitionerKind {
+    Psychologist, ClinicalPsychologist, Counsellor;
+
+    companion object {
+        fun fromString(str : String?) : PractitionerKind? {
+            return when (str?.lowercase()?.replace(" ", "")) {
+                Psychologist.name.lowercase() -> Psychologist
+                ClinicalPsychologist.name.lowercase() -> ClinicalPsychologist
+                Counsellor.name.lowercase() -> Counsellor
+                else -> null
+            }
+        }
+    }
+}

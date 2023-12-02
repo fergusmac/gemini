@@ -167,3 +167,28 @@ data class Referral (
     }
     override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old = other as Referral?, new = this)
 }
+
+
+data class Appointment (
+    val id: ObjectId,
+    val cliniko : ClinikoObject,
+    val startTime : Instant,
+    val endTime : Instant,
+    val wasBookedOnline : Boolean,
+    val cancellationUrl : String?,
+    val telehealthUrl : String?
+
+
+) : Diffable {
+    override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Appointment?, new = this)
+
+}
+
+enum class CancellationType {
+    Cancellation, NonArrival
+}
+
+data class Cancellation (
+    val time : Instant?,
+    val kind : CancellationType
+)
