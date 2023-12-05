@@ -1,6 +1,7 @@
 package mongo
 
 import Diffable
+import cliniko.sections.ClinikoAppointment
 import cliniko.sections.ClinikoCase
 import cliniko.sections.ClinikoPatient
 import cliniko.sections.ClinikoUser
@@ -25,7 +26,8 @@ data class Patient (
     val emergencyContact : Person? = null,
     val billingContact : Person? = null,
     val claimant : Claimant? = null,
-    val referrals : Map<String, Referral>? = emptyMap() //clinikoId (as string) -> Referral
+    val referrals : Map<String, Referral>? = emptyMap(), //clinikoId (as string) -> Referral
+    val appointments : Map<String, Appointment>? = emptyMap() // clinikoId string -> Appt
     //TODO extra contact
     //TODO events
 ) : Diffable
@@ -78,6 +80,8 @@ data class Patient (
                     emergencyContact = existing?.emergencyContact,
                     billingContact = existing?.billingContact,
                     claimant = existing?.claimant,
+                    referrals = existing?.referrals,
+                    appointments = existing?.appointments
                     // TODO events = existing?.events ?: emptyList()
                 )
             }
@@ -86,15 +90,27 @@ data class Patient (
         fun combineCase(clinikoCase: ClinikoCase, patient : Patient) : Patient {
             // return a copy with the case added/updated
             with (clinikoCase) {
-                val existingReferral = patient.referrals?.getOrDefault(clinikoCase.id.toString(), null)
+                val existingReferral = patient.referrals?.getOrDefault(id.toString(), null)
                 val allReferrals = patient.referrals?.toMutableMap() ?: mutableMapOf()
 
-                val newReferral = Referral.fromCliniko(clinikoCase = clinikoCase, existing = existingReferral)
+                val newReferral = Referral.fromCliniko(clinikoCase = this, existing = existingReferral)
                 allReferrals[newReferral.cliniko.id.toString()] = newReferral
 
                 return patient.copy(referrals = allReferrals)
             }
+        }
 
+        fun combineAppt(clinikoAppt: ClinikoAppointment, patient: Patient) : Patient {
+            // return a copy with the appt added/updated
+            with (clinikoAppt) {
+                val existingAppt = patient.appointments?.getOrDefault(id.toString(), null)
+                val allAppointments = patient.appointments?.toMutableMap() ?: mutableMapOf()
+
+                val newAppt = Appointment.fromCliniko(clinikoAppt = clinikoAppt, existing = existingAppt)
+                allAppointments[newAppt.cliniko.id.toString()] = newAppt
+
+                return patient.copy(appointments = allAppointments)
+            }
         }
     }
 
@@ -180,6 +196,28 @@ data class Appointment (
 
 
 ) : Diffable {
+
+    companion object {
+
+        fun fromCliniko(clinikoAppt: ClinikoAppointment, existing : Appointment?) : Appointment {
+            with (clinikoAppt) {
+                return Appointment(
+                    id = existing?.id ?: ObjectId(),
+                    cliniko = ClinikoObject(
+                        id = id,
+                        created = createdAt,
+                        modified = updatedAt,
+                        archived = archivedAt,
+                    ),
+                    startTime = startsAt,
+                    endTime = endsAt,
+                    wasBookedOnline = !bookingIpAddress.isNullOrBlank(),
+                    cancellationUrl = null, //TODO
+                    telehealthUrl = telehealthUrl
+                )
+            }
+        }
+    }
     override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Appointment?, new = this)
 
 }

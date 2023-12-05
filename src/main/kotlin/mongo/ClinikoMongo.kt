@@ -97,6 +97,40 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
         }
     }
 
+    suspend fun updatePatientWithAppt(clinikoAppt: ClinikoAppointment) {
+        val patientId = clinikoAppt.patient.links.toId()
+        if (patientId == null) {
+            logger.error { "No patient id found on appt ${clinikoAppt.id}" }
+            return
+        }
+
+        client.transact { session ->
+
+            val patient = getPatient(patientId)
+
+            if (patient == null) {
+                // patient hasn't yet been seen by mongo, try again later
+                session.abortTransaction()
+                return@transact
+            }
+
+            val updated = Patient.combineAppt(clinikoAppt=clinikoAppt, patient=patient)
+
+            val updatesMap = updated.diff(patient)!!
+
+            if (updatesMap.isEmpty()) {
+                session.abortTransaction()
+                return@transact
+            }
+
+            logger.info { "Updating patient ${updated.id} with appt row ${clinikoAppt.id} in Mongo" }
+
+            upsertOne(patients, updated.id, updatesMap)
+
+            logger.info { "Finished updating patient ${updated.id} with appt row ${clinikoAppt.id} in Mongo" }
+        }
+    }
+
     suspend fun addOrUpdatePract(clinikoPractitioner: ClinikoPractitioner) {
 
         client.transact { session ->
