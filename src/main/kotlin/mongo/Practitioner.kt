@@ -94,7 +94,7 @@ data class Practitioner (
                 if (referenceNumber == null) return pract
 
                 val practNumber = PractitionerNumber(
-                    id = referenceNumber,
+                    id = referenceNumber!!,
                     description = name ?: "",
                     cliniko = ClinikoObject(
                         id = id,

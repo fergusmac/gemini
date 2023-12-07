@@ -10,3 +10,5 @@ plugins {
 }
 
 rootProject.name = "gemini"
+
+include("cliniko-kt")

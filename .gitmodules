@@ -1,0 +1,3 @@
+[submodule "cliniko-kt"]
+	path = cliniko-kt
+	url = https://github.com/fergusmac/cliniko-kt.git

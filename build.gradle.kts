@@ -16,6 +16,7 @@ val logback_version : String by project
 val mongo_version : String by project
 
 dependencies {
+    implementation(project(mapOf("path" to ":cliniko-kt")))
     testImplementation(kotlin("test"))
     implementation(kotlin("reflect"))
     implementation("io.ktor:ktor-client-core:$ktor_version")
@@ -29,6 +30,7 @@ dependencies {
     implementation("org.mongodb:bson-kotlinx:$mongo_version")
     implementation("org.mongodb:mongodb-driver-kotlin-coroutine:$mongo_version")
 }
+
 
 tasks.test {
     useJUnitPlatform()
