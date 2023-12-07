@@ -1,5 +1,6 @@
 package cliniko.sections
 
+import cliniko.ClinikoRow
 import cliniko.PhoneNumber
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -10,7 +11,7 @@ const val SECTION_PATIENTS = "patients"
 
 @Serializable
 data class ClinikoPatient(
-    val id : Long,
+    override val id : Long,
     @SerialName("address_1") val address1 : String?,
     @SerialName("address_2") val address2 : String?,
     @SerialName("address_3") val address3 : String?,
@@ -37,7 +38,7 @@ data class ClinikoPatient(
     val sex : String?,
     val state : String?,
     @SerialName("updated_at") val updatedAt : Instant,
-    )
+    ) : ClinikoRow
 
 
 

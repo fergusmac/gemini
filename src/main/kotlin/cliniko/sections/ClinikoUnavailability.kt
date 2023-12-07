@@ -1,5 +1,6 @@
 package cliniko.sections
 
+import cliniko.ClinikoRow
 import cliniko.LinkField
 import cliniko.PhoneNumber
 import kotlinx.datetime.Instant
@@ -11,7 +12,7 @@ const val SECTION_UNAVAILABILITIES = "unavailable_blocks"
 
 @Serializable
 data class ClinikoUnavailability(
-    val id : Long,
+    override val id : Long,
     val business: LinkField,
     @SerialName("created_at") val createdAt : Instant,
     @SerialName("deleted_at") val deletedAt : Instant?,
@@ -20,7 +21,7 @@ data class ClinikoUnavailability(
     val notes: String?,
     val practitioner: LinkField,
     @SerialName("updated_at") val updatedAt : Instant,
-)
+) : ClinikoRow
 
 @Serializable
 data class ClinikoUnavailabilityMessage(@SerialName(SECTION_UNAVAILABILITIES) val unavailabilities: List<ClinikoUnavailability>)

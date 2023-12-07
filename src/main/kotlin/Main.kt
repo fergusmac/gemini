@@ -17,11 +17,11 @@ suspend fun main(args: Array<String>) {
     val cases = cliniko.getCases()
     //cliniko.getContacts()
     val appts = cliniko.getAppointments()
-    /*cliniko.getGroupAppts()
+    //cliniko.getGroupAppts()
 
-    cliniko.getUnavailabilities()
-    cliniko.getAttendees()
-    cliniko.getApptTypes()
+    //cliniko.getUnavailabilities()
+    val attendees = cliniko.getAttendees()
+    /*cliniko.getApptTypes()
     cliniko.getAvailabilities()
     cliniko.getGroupAppts()*/
     val practs = cliniko.getPractitioners()
@@ -33,8 +33,9 @@ suspend fun main(args: Array<String>) {
     patients.values.forEach { db.addOrUpdatePatient(it) }
     cases.values.forEach { db.updatePatientWithCase(it) }
     appts.values.forEach { db.updatePatientWithAppt(it) }
-    for (pract in practs.values) db.addOrUpdatePract(pract)
-    for (user in users.values) db.updatePractWithUser(user)
-    for (prn in prns.values) db.updatePractWithNumber(prn)
+    attendees.values.forEach { db.updatePatientWithAttendee(it) }
+    practs.values.forEach { db.addOrUpdatePract(it) }
+    users.values.forEach { db.updatePractWithUser(it) }
+    prns.values.forEach { db.updatePractWithNumber(it) }
 
 }

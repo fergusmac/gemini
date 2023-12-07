@@ -1,5 +1,6 @@
 package cliniko.sections
 
+import cliniko.ClinikoRow
 import cliniko.LinkField
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
@@ -9,7 +10,7 @@ const val SECTION_BUSINESSES = "businesses"
 
 @Serializable
 class ClinikoBusiness (
-    val id : Long,
+    override val id : Long,
     @SerialName("archived_at") val archivedAt : Instant?,
     @SerialName("address_1") val address1 : String?,
     @SerialName("address_2") val address2 : String?,
@@ -20,7 +21,7 @@ class ClinikoBusiness (
     @SerialName("post_code") val postCode : String?,
     val state: String?,
     @SerialName("website_address") val websiteAddress : String?
-)
+) : ClinikoRow
 
 @Serializable
 class ClinikoBusinessMessage(val businesses: List<ClinikoBusiness>)

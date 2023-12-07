@@ -1,5 +1,6 @@
 package cliniko.sections
 
+import cliniko.ClinikoRow
 import cliniko.LinkField
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalTime
@@ -16,11 +17,11 @@ class Availability (
 
 @Serializable
 class ClinikoAvailability (
-    val id : Long,
+    override val id : Long,
     val business: LinkField,
     @SerialName("day_of_week") val dayOfWeek : Int, // 0 = Monday
     val practitioner: LinkField
-)
+) : ClinikoRow
 
 @Serializable
 class ClinikoAvailabilityMessage(@SerialName(SECTION_AVAILABILITY) val availabilities: List<ClinikoAvailability>)

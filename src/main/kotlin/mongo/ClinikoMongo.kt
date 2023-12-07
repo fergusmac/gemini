@@ -1,5 +1,7 @@
 package mongo
 
+import Diffable
+import cliniko.ClinikoRow
 import cliniko.sections.*
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
@@ -36,186 +38,128 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
 
     val patients = db.getCollection<Patient>(collectionName = "patients")
     val practs = db.getCollection<Practitioner>(collectionName = "practs")
-
+    val apptTypes = db.getCollection<AppointmentType>(collectionName = "apptTypes")
 
     suspend fun addOrUpdatePatient(clinikoPatient : ClinikoPatient) {
 
-        client.transact { session ->
-
-            val existing = getPatient(clinikoPatient.id)
-
-            //copy any non-cliniko fields from the existing document (if any)
-            val updated = Patient.fromCliniko(clinikoPatient, existing = existing)
-
-            val updatesMap = updated.diff(existing)!!
-
-            if (updatesMap.isEmpty()) {
-                session.abortTransaction()
-                return@transact
-            }
-
-            logger.info { "Updating patient ${updated.id} in Mongo" }
-
-            upsertOne(patients, updated.id, updatesMap)
-
-            logger.info { "Finished updating patient ${updated.id} in Mongo" }
-        }
+        updateRowFromCliniko(
+            clinikoObj = clinikoPatient,
+            collection = patients,
+            updateFunc = { clinObj, mongObj -> Patient.fromCliniko(clinObj, mongObj) },
+            allowCreate = true)
     }
 
     suspend fun updatePatientWithCase(clinikoCase: ClinikoCase) {
 
-        val patientId = clinikoCase.patient.links.toId()
-        if (patientId == null) {
-            logger.error { "No patient id found on case ${clinikoCase.id}" }
-            return
-        }
-
-        client.transact { session ->
-
-            val patient = getPatient(patientId)
-
-            if (patient == null) {
-                // patient hasn't yet been seen by mongo, try again later
-                session.abortTransaction()
-                return@transact
-            }
-
-            val updated = Patient.combineCase(clinikoCase=clinikoCase, patient=patient)
-
-            val updatesMap = updated.diff(patient)!!
-
-            if (updatesMap.isEmpty()) {
-                session.abortTransaction()
-                return@transact
-            }
-
-            logger.info { "Updating patient ${updated.id} with case row ${clinikoCase.id} in Mongo" }
-
-            upsertOne(patients, updated.id, updatesMap)
-
-            logger.info { "Finished updating patient ${updated.id} with case row ${clinikoCase.id} in Mongo" }
-        }
+        updateRowFromCliniko(
+            clinikoObj = clinikoCase,
+            clinikoId = clinikoCase.patient.links.toId(),
+            collection = patients,
+            updateFunc = { clinObj, mongObj -> Patient.combineCase(clinObj, mongObj!!) },
+            allowCreate = false)
     }
 
     suspend fun updatePatientWithAppt(clinikoAppt: ClinikoAppointment) {
-        val patientId = clinikoAppt.patient.links.toId()
-        if (patientId == null) {
-            logger.error { "No patient id found on appt ${clinikoAppt.id}" }
+        updateRowFromCliniko(
+            clinikoObj = clinikoAppt,
+            clinikoId = clinikoAppt.patient.links.toId(),
+            collection = patients,
+            updateFunc = { clinObj, mongObj -> Patient.combineAppt(clinObj, mongObj!!) },
+            allowCreate = false)
+    }
+
+    suspend fun updatePatientWithAttendee(clinikoAttendee: ClinikoAttendee) {
+
+        // if this is null, wont be able to find the appt on the patient to update
+        if(clinikoAttendee.booking.links.toId() == null) {
+            logger.error { "No booking id found on attendee ${clinikoAttendee.id}" }
             return
         }
 
-        client.transact { session ->
+        updateRowFromCliniko(
+            clinikoObj = clinikoAttendee,
+            clinikoId = clinikoAttendee.patient.links.toId(),
+            collection = patients,
+            updateFunc = { clinObj, mongObj -> Patient.combineAttendee(clinObj, mongObj!!) },
+            allowCreate = false)
+    }
 
-            val patient = getPatient(patientId)
+    suspend fun addOrUpdateApptType(clinikoApptType: ClinikoApptType) {
 
-            if (patient == null) {
-                // patient hasn't yet been seen by mongo, try again later
-                session.abortTransaction()
-                return@transact
-            }
-
-            val updated = Patient.combineAppt(clinikoAppt=clinikoAppt, patient=patient)
-
-            val updatesMap = updated.diff(patient)!!
-
-            if (updatesMap.isEmpty()) {
-                session.abortTransaction()
-                return@transact
-            }
-
-            logger.info { "Updating patient ${updated.id} with appt row ${clinikoAppt.id} in Mongo" }
-
-            upsertOne(patients, updated.id, updatesMap)
-
-            logger.info { "Finished updating patient ${updated.id} with appt row ${clinikoAppt.id} in Mongo" }
-        }
+        updateRowFromCliniko(
+            clinikoObj = clinikoApptType,
+            collection = apptTypes,
+            updateFunc = { clinObj, mongObj -> AppointmentType.fromCliniko(clinObj, mongObj) },
+            allowCreate = true)
     }
 
     suspend fun addOrUpdatePract(clinikoPractitioner: ClinikoPractitioner) {
 
-        client.transact { session ->
-
-            val existing = getPract(clinikoPractitioner.id)
-
-            //copy any non-cliniko fields from the existing document (if any)
-            val updated = Practitioner.fromCliniko(clinikoPractitioner, existing = existing)
-
-            val updatesMap = updated.diff(existing)!!
-
-            if (updatesMap.isEmpty()) {
-                session.abortTransaction()
-                return@transact
-            }
-
-            logger.info { "Updating pract ${updated.id} in Mongo" }
-
-            upsertOne(practs, updated.id, updatesMap)
-
-            logger.info { "Finished updating pract ${updated.id} in Mongo" }
-        }
+        updateRowFromCliniko(
+            clinikoObj = clinikoPractitioner,
+            collection = practs,
+            mongoFieldName = "clinikoPract.id",
+            updateFunc = { clinObj, mongObj -> Practitioner.fromCliniko(clinObj, mongObj) },
+            allowCreate = true)
     }
 
     suspend fun updatePractWithUser(clinikoUser: ClinikoUser) {
-        client.transact { session ->
 
-            val pract = getPractByUser(clinikoUser.id)
-
-            if (pract == null) {
-                // pract hasn't yet been seen by mongo, try again later to add the user
-                session.abortTransaction()
-                return@transact
-            }
-
-            val updated = Practitioner.combineUser(clinikoUser = clinikoUser, pract = pract)
-
-            val updatesMap = updated.diff(pract)!!
-
-            if (updatesMap.isEmpty()) {
-                session.abortTransaction()
-                return@transact
-            }
-
-            logger.info { "Updating pract ${updated.id} with user row ${clinikoUser.id} in Mongo" }
-
-            upsertOne(practs, updated.id, updatesMap)
-
-            logger.info { "Finished updating pract ${updated.id} with user row ${clinikoUser.id} in Mongo" }
-        }
+        updateRowFromCliniko(
+            clinikoObj = clinikoUser,
+            collection = practs,
+            mongoFieldName = "clinikoUser.id",
+            updateFunc = { clinObj, mongObj -> Practitioner.combineUser(clinObj, mongObj!!) },
+            allowCreate = false)
     }
 
     suspend fun updatePractWithNumber(clinikoNumber: ClinikoPractNumber) {
+
+        updateRowFromCliniko(
+            clinikoObj = clinikoNumber,
+            clinikoId = clinikoNumber.practitioner.links.toId(),
+            collection = practs,
+            mongoFieldName = "clinikoUser.id",
+            updateFunc = { clinObj, mongObj -> Practitioner.combineRefNumber(clinObj, mongObj!!) },
+            allowCreate = false)
+    }
+
+    suspend fun <C : ClinikoRow, M : MongoRow> updateRowFromCliniko(
+        clinikoObj: C,
+        clinikoId : Long? = clinikoObj.id,
+        collection : MongoCollection<M>,
+        mongoFieldName : String = "cliniko.id",
+        updateFunc : (C, M?) -> M,
+        allowCreate : Boolean)
+    {
+        if (clinikoId == null) {
+            logger.info { "Foreign id is null on cliniko row ${clinikoObj.id}, cannot update in Mongo" }
+            return
+        }
+
         client.transact { session ->
 
-            val practId = clinikoNumber.practitioner.links.toId()
-            if (practId == null) {
-                //shouldn't ever happen
-                logger.error { "Received practitionerReferenceNumber ${clinikoNumber.id} with no practitionerId" }
+            val mongoObj = getOne(clinikoId = clinikoId, collection = collection, fieldName = mongoFieldName)
+
+            if (!allowCreate && mongoObj == null) {
+                // row hasn't yet been seen by mongo, try again later
                 session.abortTransaction()
                 return@transact
             }
 
-            val pract = getPract(practId)
+            val updated = updateFunc(clinikoObj, mongoObj)
 
-            if (pract == null) {
-                // pract hasn't yet been seen by mongo, try again later to add
+            val updatesMap = updated.diff(mongoObj)
+
+            if (updatesMap.isNullOrEmpty()) {
                 session.abortTransaction()
                 return@transact
             }
 
-            val updated = Practitioner.combineRefNumber(clinikoNumber = clinikoNumber, pract = pract)
+            logger.info { "Updating row ${updated.id} with cliniko row ${clinikoObj.id} in Mongo" }
 
-            val updatesMap = updated.diff(pract)!!
+            upsertOne(patients, updated.id, updatesMap)
 
-            if (updatesMap.isEmpty()) {
-                session.abortTransaction()
-                return@transact
-            }
-
-            logger.info { "Updating pract ${updated.id} with practReferenceNumber row ${clinikoNumber.id} in Mongo" }
-
-            upsertOne(practs, updated.id, updatesMap)
-
-            logger.info { "Finished updating pract ${updated.id} with practReferenceNumber row ${clinikoNumber.id} in Mongo" }
         }
     }
 
@@ -240,24 +184,28 @@ class ClinikoMongo (connectionString: ConnectionString, val databaseName : Strin
         )
     }
 
-    suspend fun getPatient(clinikoId : Long) : Patient? {
-        return patients.find(eq("cliniko.id", clinikoId)).firstOrNull()
+    suspend fun getPatient(clinikoId : Long) : Patient? = getOne(clinikoId, patients)
+
+    suspend fun getPatients(clinikoIds : List<Long>) : List<Patient> = getMultiple(clinikoIds, patients)
+
+    suspend fun getPract(clinikoId : Long) : Practitioner? = getOne(clinikoId, practs, fieldName = "clinikoPract.id")
+
+    suspend fun getPractByUser(clinikoUserId: Long) : Practitioner? = getOne(clinikoUserId, practs, fieldName = "clinikoUser.id")
+
+    suspend fun getPracts() : List<Practitioner> = getAll(practs)
+
+    suspend fun getAppointmentType(clinikoId: Long) : AppointmentType? = getOne(clinikoId, apptTypes)
+
+    suspend fun <T : Any> getOne(clinikoId : Long, collection: MongoCollection<T>, fieldName : String = "cliniko.id") : T? {
+        return collection.find(eq(fieldName, clinikoId)).firstOrNull()
     }
 
-    suspend fun getPatients(clinikoIds : List<Long>) : List<Patient> {
-        return patients.find(`in`("cliniko.id", clinikoIds)).toList()
+    suspend fun <T : Any> getMultiple(clinikoIds : List<Long>, collection: MongoCollection<T>, fieldName : String = "cliniko.id") : List<T> {
+        return collection.find(`in`(fieldName, clinikoIds)).toList()
     }
 
-    suspend fun getPract(clinikoId : Long) : Practitioner? {
-        return practs.find(eq("clinikoPract.id", clinikoId)).firstOrNull()
-    }
-
-    suspend fun getPractByUser(clinikoUserId: Long) : Practitioner? {
-        return practs.find(eq("clinikoUser.id", clinikoUserId)).firstOrNull()
-    }
-
-    suspend fun getPracts() : List<Practitioner> {
-        return practs.find().toList()
+    suspend fun <T : Any> getAll(collection: MongoCollection<T>) : List<T> {
+        return collection.find().toList()
     }
 }
 

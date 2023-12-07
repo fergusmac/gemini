@@ -3,6 +3,10 @@ package cliniko
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+interface ClinikoRow {
+    val id : Long
+}
+
 @Serializable
 data class PhoneNumber(
     val number : String,

@@ -1,5 +1,6 @@
 package cliniko.sections
 
+import cliniko.ClinikoRow
 import cliniko.LinkField
 import cliniko.PhoneNumber
 import kotlinx.datetime.Instant
@@ -11,7 +12,7 @@ const val SECTION_USERS = "users"
 
 @Serializable
 data class ClinikoUser(
-    val id : Long,
+    override val id : Long,
     val active: Boolean?,
     @SerialName("created_at") val createdAt : Instant,
     val email: String,
@@ -20,7 +21,7 @@ data class ClinikoUser(
     @SerialName("phone_numbers") val phoneNumbers: List<PhoneNumber>?,
     @SerialName("updated_at") val updatedAt : Instant,
     @SerialName("user_active") val userActive : Boolean?,
-)
+) : ClinikoRow
 
 @Serializable
 data class ClinikoUserMessage(val users: List<ClinikoUser>)

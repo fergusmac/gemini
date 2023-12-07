@@ -9,7 +9,7 @@ import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 data class Practitioner (
-    @BsonId val id: ObjectId,
+    @BsonId override val id: ObjectId,
     val label : String,
     val kind : PractitionerKind?,
     val clinikoPract : ClinikoObject?,
@@ -24,7 +24,7 @@ data class Practitioner (
     val isTakingIntakes : Boolean,
     val lettersFolderId : String?,
     val letterTemplates : Map<String, String>? //letter type -> template gdocs id
-) : Diffable
+) : MongoRow
 {
 
     companion object {

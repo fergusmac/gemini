@@ -1,5 +1,6 @@
 package cliniko.sections
 
+import cliniko.ClinikoRow
 import cliniko.LinkField
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
@@ -10,7 +11,7 @@ const val SECTION_APPOINTMENTS = "individual_appointments"
 @Serializable
 data class ClinikoAppointment(
     //individual appt
-    val id : Long,
+    override val id : Long,
     @SerialName("archived_at") val archivedAt : Instant?,
     val business : LinkField,
     @SerialName("booking_ip_address") val bookingIpAddress : String?,
@@ -28,8 +29,8 @@ data class ClinikoAppointment(
     val practitioner: LinkField,
     @SerialName("starts_at") val startsAt: Instant,
     @SerialName("updated_at") val updatedAt : Instant?,
-    @SerialName("telehealth_url") val telehealthUrl : String?
-)
+    @SerialName("telehealth_url") val practTelehealthUrl : String?
+) : ClinikoRow
 
 @Serializable
 data class ClinikoAppointmentMessage(@SerialName(SECTION_APPOINTMENTS) val appointments: List<ClinikoAppointment>)

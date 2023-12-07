@@ -1,5 +1,6 @@
 package cliniko.sections
 
+import cliniko.ClinikoRow
 import cliniko.LinkField
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
@@ -10,7 +11,7 @@ const val SECTION_PRACTITIONERS = "practitioners"
 
 @Serializable
 data class ClinikoPractitioner(
-    val id : Long,
+    override val id : Long,
     val active: Boolean?,
     @SerialName("created_at") val createdAt : Instant,
     val designation: String?,
@@ -18,7 +19,7 @@ data class ClinikoPractitioner(
     @SerialName("last_name") val lastName : String?,
     @SerialName("updated_at") val updatedAt : Instant,
     val user: LinkField
-)
+) : ClinikoRow
 
 @Serializable
 data class ClinikoPractMessage(val practitioners: List<ClinikoPractitioner>)

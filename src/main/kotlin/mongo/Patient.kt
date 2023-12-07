@@ -1,10 +1,7 @@
 package mongo
 
 import Diffable
-import cliniko.sections.ClinikoAppointment
-import cliniko.sections.ClinikoCase
-import cliniko.sections.ClinikoPatient
-import cliniko.sections.ClinikoUser
+import cliniko.sections.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import memberDiff
@@ -13,8 +10,12 @@ import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 
+interface MongoRow : Diffable {
+    val id : ObjectId
+}
+
 data class Patient (
-    @BsonId val id: ObjectId,
+    @BsonId override val id: ObjectId,
     val label : String,
     val cliniko : ClinikoObject,
     val person: Person,
@@ -30,7 +31,7 @@ data class Patient (
     val appointments : Map<String, Appointment>? = emptyMap() // clinikoId string -> Appt
     //TODO extra contact
     //TODO events
-) : Diffable
+) : MongoRow
 {
 //TODO group leader?
 
@@ -112,6 +113,24 @@ data class Patient (
                 return patient.copy(appointments = allAppointments)
             }
         }
+
+        fun combineAttendee(clinikoAttendee: ClinikoAttendee, patient: Patient) : Patient {
+            // return a copy with the matching appt updated with the attendee
+            with (clinikoAttendee) {
+
+                val bookingId = booking.links.toId()!! // checked not null in caller
+
+                // if appointment hasnt been seen yet, return patient unchanged and try again later
+                val existingAppt = patient.appointments?.getOrDefault(bookingId.toString(), null) ?: return patient
+
+                val allAppointments = patient.appointments.toMutableMap()
+
+                val newAppt = Appointment.combineAttendee(attendee = clinikoAttendee, existing = existingAppt)
+                allAppointments[newAppt.cliniko.id.toString()] = newAppt
+
+                return patient.copy(appointments = allAppointments)
+            }
+        }
     }
 
     //skip id as it will already be set when inserted into mongo and including it again will duplicate it
@@ -148,13 +167,10 @@ data class Referral (
     val id: ObjectId,
     val cliniko : ClinikoObject,
     val name : String,
-    val referralType : String,
     val referralDate : LocalDate?,
     val expiryDate : LocalDate?,
     val maxAppointments : Int?,
     val closedInCliniko : Boolean,
-    val status : String,
-    //TODO appointment ids?
     val clinikoContactId : Long?,
 ) : Diffable {
 
@@ -170,12 +186,10 @@ data class Referral (
                         archived = archivedAt
                     ),
                     name = name,
-                    referralType = "", //TODO
                     referralDate = issueDate,
                     expiryDate = expiryDate,
                     maxAppointments = maxSessions,
                     closedInCliniko = closed,
-                    status = "", //TODO
                     clinikoContactId = contact?.links?.toId()
                 )
             }
@@ -192,8 +206,10 @@ data class Appointment (
     val endTime : Instant,
     val wasBookedOnline : Boolean,
     val cancellationUrl : String?,
-    val telehealthUrl : String?
-
+    val patientTelehealthUrl : String?,
+    val referralId : Long?,
+    val cancellation : Cancellation?,
+    val hasArrived : Boolean
 
 ) : Diffable {
 
@@ -201,6 +217,18 @@ data class Appointment (
 
         fun fromCliniko(clinikoAppt: ClinikoAppointment, existing : Appointment?) : Appointment {
             with (clinikoAppt) {
+                val cancellation = if (cancelledAt != null) {
+                    Cancellation(
+                        time = cancelledAt,
+                        kind = CancellationType.Cancellation,
+                        note = cancellationNote,
+                        reason = cancellationReasonDescription)
+                } else if (didNotArrive == true) {
+                    Cancellation(time = null, kind = CancellationType.NonArrival)
+                } else {
+                    null
+                }
+
                 return Appointment(
                     id = existing?.id ?: ObjectId(),
                     cliniko = ClinikoObject(
@@ -212,10 +240,20 @@ data class Appointment (
                     startTime = startsAt,
                     endTime = endsAt,
                     wasBookedOnline = !bookingIpAddress.isNullOrBlank(),
-                    cancellationUrl = null, //TODO
-                    telehealthUrl = telehealthUrl
+                    cancellationUrl = existing?.cancellationUrl,
+                    patientTelehealthUrl = existing?.patientTelehealthUrl,
+                    referralId = patientCase?.links?.toId(),
+                    cancellation = cancellation,
+                    hasArrived = patientArrived
                 )
             }
+        }
+
+        fun combineAttendee(attendee: ClinikoAttendee, existing : Appointment) : Appointment {
+            //all the other fields are doubled up on the individual appointment, so ignore everything else
+            return existing.copy(
+                cancellationUrl = attendee.cancellationUrl,
+                patientTelehealthUrl = attendee.telehealthUrl)
         }
     }
     override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Appointment?, new = this)
@@ -228,5 +266,10 @@ enum class CancellationType {
 
 data class Cancellation (
     val time : Instant?,
-    val kind : CancellationType
-)
+    val kind : CancellationType,
+    val note : String? = null,
+    val reason : String? = null
+) : Diffable {
+
+    override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Cancellation?, new = this)
+}
