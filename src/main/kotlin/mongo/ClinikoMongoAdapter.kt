@@ -1,6 +1,5 @@
 package mongo
 
-import Diffable
 import cliniko.ClinikoRow
 import cliniko.sections.*
 import com.mongodb.ConnectionString
@@ -16,11 +15,10 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import org.bson.codecs.configuration.CodecRegistries
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 private val logger = KotlinLogging.logger {}
-class ClinikoMongo (connectionString: ConnectionString, val databaseName : String) {
+class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName : String) {
 
     val client = MongoClient.create(connectionString=connectionString)
 

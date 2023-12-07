@@ -1,13 +1,13 @@
 import cliniko.ClinikoClient
 import com.mongodb.ConnectionString
 import io.github.oshai.kotlinlogging.KotlinLogging
-import mongo.ClinikoMongo
+import mongo.ClinikoMongoAdapter
 
 private val logger = KotlinLogging.logger {}
 suspend fun main(args: Array<String>) {
 
 
-    val db = ClinikoMongo(ConnectionString("mongodb://localhost:27017"), databaseName = "constellation")
+    val adapter = ClinikoMongoAdapter(ConnectionString("mongodb://localhost:27017"), databaseName = "constellation")
 
     //delay(10000)
     println("Api Key: ")
@@ -30,12 +30,12 @@ suspend fun main(args: Array<String>) {
     //cliniko.getBusinesses()
 
 
-    patients.values.forEach { db.addOrUpdatePatient(it) }
-    cases.values.forEach { db.updatePatientWithCase(it) }
-    appts.values.forEach { db.updatePatientWithAppt(it) }
-    attendees.values.forEach { db.updatePatientWithAttendee(it) }
-    practs.values.forEach { db.addOrUpdatePract(it) }
-    users.values.forEach { db.updatePractWithUser(it) }
-    prns.values.forEach { db.updatePractWithNumber(it) }
+    patients.values.forEach { adapter.addOrUpdatePatient(it) }
+    cases.values.forEach { adapter.updatePatientWithCase(it) }
+    appts.values.forEach { adapter.updatePatientWithAppt(it) }
+    attendees.values.forEach { adapter.updatePatientWithAttendee(it) }
+    practs.values.forEach { adapter.addOrUpdatePract(it) }
+    users.values.forEach { adapter.updatePractWithUser(it) }
+    prns.values.forEach { adapter.updatePractWithNumber(it) }
 
 }
