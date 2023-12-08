@@ -4,8 +4,7 @@ import cliniko.ClinikoRow
 import cliniko.sections.*
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
-import com.mongodb.client.model.Filters.eq
-import com.mongodb.client.model.Filters.`in`
+import com.mongodb.client.model.Filters.*
 import com.mongodb.client.model.UpdateOptions
 import com.mongodb.client.model.Updates.*
 import com.mongodb.kotlin.client.coroutine.MongoClient
@@ -21,7 +20,6 @@ private val logger = KotlinLogging.logger {}
 class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName : String) {
 
     val client = MongoClient.create(connectionString=connectionString)
-
 
     val codecRegistry = CodecRegistries.fromRegistries(
         CodecRegistries.fromCodecs(

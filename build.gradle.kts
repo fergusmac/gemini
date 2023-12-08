@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.konan.properties.Properties
+
 plugins {
     kotlin("jvm") version "1.9.0"
     kotlin("plugin.serialization") version "1.9.20"
@@ -7,8 +9,19 @@ plugins {
 group = "fergusm"
 version = "1.0-SNAPSHOT"
 
+val localProperties = Properties().apply {
+    File("./local.properties").reader().use { load(it) }
+}
+val authToken: String by localProperties
+
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://jitpack.io")
+        credentials {
+            username = authToken
+        }
+    }
 }
 
 val ktor_version: String by project
@@ -16,7 +29,6 @@ val logback_version : String by project
 val mongo_version : String by project
 
 dependencies {
-    implementation(project(mapOf("path" to ":cliniko-kt")))
     testImplementation(kotlin("test"))
     implementation(kotlin("reflect"))
     implementation("io.ktor:ktor-client-core:$ktor_version")
@@ -29,8 +41,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
     implementation("org.mongodb:bson-kotlinx:$mongo_version")
     implementation("org.mongodb:mongodb-driver-kotlin-coroutine:$mongo_version")
+    implementation("com.github.fergusmac:cliniko-kt:0.1.1")
 }
-
 
 tasks.test {
     useJUnitPlatform()
