@@ -34,7 +34,6 @@ class SqlMigrator(
             val resultSet = statement.executeQuery()
 
             while (resultSet.next()) {
-                val x = 1
                 val info = PatientTransferInfo(
                     id = resultSet.getString("id"),
                     customer_id = resultSet.getString("customer_id"),
