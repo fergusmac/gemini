@@ -22,18 +22,13 @@ data class Patient (
     val medicare: MedicareCard? = null,
     val ndisNumber: Long? = null,
     val marketingSource : String? = null,
-    val manualBilling : Boolean? = null,
-    val stripeId : String? = null,
     val emergencyContact : Person? = null,
-    val billingContact : Person? = null,
     val claimant : Claimant? = null,
+    val billingInfo: BillingInfo? = null,
     val referrals : Map<String, Referral>? = emptyMap(), //clinikoId (as string) -> Referral
     val appointments : Map<String, Appointment>? = emptyMap() // clinikoId string -> Appt
-    //TODO extra contact
-    //TODO events
 ) : MongoRow
 {
-//TODO group leader?
 
     companion object {
 
@@ -45,6 +40,8 @@ data class Patient (
                     preferred = preferredFirstName,
                     last = lastName
                 )
+
+
 
                 return Patient(
                     id = existing?.id ?: ObjectId(),
@@ -76,14 +73,11 @@ data class Patient (
                     ),
                     marketingSource = referralSource,
                     ndisNumber = existing?.ndisNumber,
-                    manualBilling = existing?.manualBilling,
-                    stripeId = existing?.stripeId,
                     emergencyContact = existing?.emergencyContact,
-                    billingContact = existing?.billingContact,
+                    billingInfo = existing?.billingInfo,
                     claimant = existing?.claimant,
                     referrals = existing?.referrals,
                     appointments = existing?.appointments
-                    // TODO events = existing?.events ?: emptyList()
                 )
             }
         }
@@ -273,3 +267,10 @@ data class Cancellation (
 
     override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Cancellation?, new = this)
 }
+
+
+data class BillingInfo(
+    val customerId : String?,
+    val billingContact : Person?,
+    val manualBilling: Boolean
+)

@@ -20,8 +20,10 @@ data class Practitioner (
     var abn : PractitionerNumber?,
     val houseFeePercent: Int?,
     val stripeAccount : String?,
+    val nextServiceFeeId : Int?,
+    val standardPriceDollars : Int?,
     val xeroContactId : String?,
-    val isTakingIntakes : Boolean,
+    val isTakingIntakes : Boolean?,
     val lettersFolderId : String?,
     val letterTemplates : Map<String, String>? //letter type -> template gdocs id
 ) : MongoRow
@@ -63,7 +65,9 @@ data class Practitioner (
                     xeroContactId = existing?.xeroContactId,
                     isTakingIntakes = existing?.isTakingIntakes ?: false,
                     lettersFolderId = existing?.lettersFolderId,
-                    letterTemplates = existing?.letterTemplates
+                    letterTemplates = existing?.letterTemplates,
+                    nextServiceFeeId = existing?.nextServiceFeeId,
+                    standardPriceDollars = existing?.standardPriceDollars
                 )
             }
         }
