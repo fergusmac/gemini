@@ -156,7 +156,7 @@ data class MedicareCard (
 
 data class Claimant (
     val person : Person,
-    val medicare: MedicareCard
+    val medicare: MedicareCard?
 ) : Diffable
 {
     override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old = other as Claimant?, new = this)

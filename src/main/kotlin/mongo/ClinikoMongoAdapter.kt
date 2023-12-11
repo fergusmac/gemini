@@ -17,30 +17,13 @@ import org.bson.codecs.configuration.CodecRegistries
 import org.bson.types.ObjectId
 
 private val logger = KotlinLogging.logger {}
-class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName : String) {
-
-    val client = MongoClient.create(connectionString=connectionString)
-
-    val codecRegistry = CodecRegistries.fromRegistries(
-        CodecRegistries.fromCodecs(
-            InstantCodec(),
-            EnumCodec.buildCodec<CancellationType>(),
-            EnumCodec.buildCodec<PractitionerKind>()
-        ),
-        MongoClientSettings.getDefaultCodecRegistry()
-    )
-
-    val db: MongoDatabase = client.getDatabase(databaseName = databaseName).withCodecRegistry(codecRegistry)
-
-    val patients = db.getCollection<Patient>(collectionName = "patients")
-    val practs = db.getCollection<Practitioner>(collectionName = "practs")
-    val apptTypes = db.getCollection<AppointmentType>(collectionName = "apptTypes")
+class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
     suspend fun addOrUpdatePatient(clinikoPatient : ClinikoPatient) {
 
         updateRowFromCliniko(
             clinikoObj = clinikoPatient,
-            collection = patients,
+            collection = mongo.patients,
             updateFunc = { clinObj, mongObj -> Patient.fromCliniko(clinObj, mongObj) },
             allowCreate = true)
     }
@@ -50,7 +33,7 @@ class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName 
         updateRowFromCliniko(
             clinikoObj = clinikoCase,
             clinikoId = clinikoCase.patient.links.toId(),
-            collection = patients,
+            collection = mongo.patients,
             updateFunc = { clinObj, mongObj -> Patient.combineCase(clinObj, mongObj!!) },
             allowCreate = false)
     }
@@ -59,7 +42,7 @@ class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName 
         updateRowFromCliniko(
             clinikoObj = clinikoAppt,
             clinikoId = clinikoAppt.patient.links.toId(),
-            collection = patients,
+            collection = mongo.patients,
             updateFunc = { clinObj, mongObj -> Patient.combineAppt(clinObj, mongObj!!) },
             allowCreate = false)
     }
@@ -75,7 +58,7 @@ class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName 
         updateRowFromCliniko(
             clinikoObj = clinikoAttendee,
             clinikoId = clinikoAttendee.patient.links.toId(),
-            collection = patients,
+            collection = mongo.patients,
             updateFunc = { clinObj, mongObj -> Patient.combineAttendee(clinObj, mongObj!!) },
             allowCreate = false)
     }
@@ -84,7 +67,7 @@ class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName 
 
         updateRowFromCliniko(
             clinikoObj = clinikoApptType,
-            collection = apptTypes,
+            collection = mongo.apptTypes,
             updateFunc = { clinObj, mongObj -> AppointmentType.fromCliniko(clinObj, mongObj) },
             allowCreate = true)
     }
@@ -93,7 +76,7 @@ class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName 
 
         updateRowFromCliniko(
             clinikoObj = clinikoPractitioner,
-            collection = practs,
+            collection = mongo.practs,
             mongoFieldName = "clinikoPract.id",
             updateFunc = { clinObj, mongObj -> Practitioner.fromCliniko(clinObj, mongObj) },
             allowCreate = true)
@@ -103,7 +86,7 @@ class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName 
 
         updateRowFromCliniko(
             clinikoObj = clinikoUser,
-            collection = practs,
+            collection = mongo.practs,
             mongoFieldName = "clinikoUser.id",
             updateFunc = { clinObj, mongObj -> Practitioner.combineUser(clinObj, mongObj!!) },
             allowCreate = false)
@@ -114,7 +97,7 @@ class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName 
         updateRowFromCliniko(
             clinikoObj = clinikoNumber,
             clinikoId = clinikoNumber.practitioner.links.toId(),
-            collection = practs,
+            collection = mongo.practs,
             mongoFieldName = "clinikoUser.id",
             updateFunc = { clinObj, mongObj -> Practitioner.combineRefNumber(clinObj, mongObj!!) },
             allowCreate = false)
@@ -133,7 +116,7 @@ class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName 
             return
         }
 
-        client.transact { session ->
+        mongo.client.transact { session ->
 
             val mongoObj = getOne(clinikoId = clinikoId, collection = collection, fieldName = mongoFieldName)
 
@@ -154,43 +137,24 @@ class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName 
 
             logger.info { "Updating row ${updated.id} with cliniko row ${clinikoObj.id} in Mongo" }
 
-            upsertOne(patients, updated.id, updatesMap)
+            mongo.upsertOne(mongo.patients, updated.id, updatesMap)
 
         }
     }
 
-    suspend fun <T : Any> upsertOne(collection : MongoCollection<T>, id : ObjectId, updatesMap: Map<String, Any?>) {
-        val updatesBson = combine(
-            updatesMap.map {
-                if(it.value == null) {
-                    unset(it.key)
-                }
-                else {
-                    set(it.key, it.value)
-                }
-            }
-        )
 
-        println(updatesBson) //TODO
 
-        collection.updateOne(
-            filter = eq("_id", id),
-            update = updatesBson,
-            options = UpdateOptions().upsert(true)
-        )
-    }
+    suspend fun getPatient(clinikoId : Long) : Patient? = getOne(clinikoId, mongo.patients)
 
-    suspend fun getPatient(clinikoId : Long) : Patient? = getOne(clinikoId, patients)
+    suspend fun getPatients(clinikoIds : List<Long>) : List<Patient> = getMultiple(clinikoIds, mongo.patients)
 
-    suspend fun getPatients(clinikoIds : List<Long>) : List<Patient> = getMultiple(clinikoIds, patients)
+    suspend fun getPract(clinikoId : Long) : Practitioner? = getOne(clinikoId, mongo.practs, fieldName = "clinikoPract.id")
 
-    suspend fun getPract(clinikoId : Long) : Practitioner? = getOne(clinikoId, practs, fieldName = "clinikoPract.id")
+    suspend fun getPractByUser(clinikoUserId: Long) : Practitioner? = getOne(clinikoUserId, mongo.practs, fieldName = "clinikoUser.id")
 
-    suspend fun getPractByUser(clinikoUserId: Long) : Practitioner? = getOne(clinikoUserId, practs, fieldName = "clinikoUser.id")
+    suspend fun getPracts() : List<Practitioner> = mongo.getAll(mongo.practs)
 
-    suspend fun getPracts() : List<Practitioner> = getAll(practs)
-
-    suspend fun getAppointmentType(clinikoId: Long) : AppointmentType? = getOne(clinikoId, apptTypes)
+    suspend fun getAppointmentType(clinikoId: Long) : AppointmentType? = getOne(clinikoId, mongo.apptTypes)
 
     suspend fun <T : Any> getOne(clinikoId : Long, collection: MongoCollection<T>, fieldName : String = "cliniko.id") : T? {
         return collection.find(eq(fieldName, clinikoId)).firstOrNull()
@@ -198,10 +162,6 @@ class ClinikoMongoAdapter (connectionString: ConnectionString, val databaseName 
 
     suspend fun <T : Any> getMultiple(clinikoIds : List<Long>, collection: MongoCollection<T>, fieldName : String = "cliniko.id") : List<T> {
         return collection.find(`in`(fieldName, clinikoIds)).toList()
-    }
-
-    suspend fun <T : Any> getAll(collection: MongoCollection<T>) : List<T> {
-        return collection.find().toList()
     }
 }
 

@@ -42,6 +42,7 @@ dependencies {
     implementation("org.mongodb:bson-kotlinx:$mongo_version")
     implementation("org.mongodb:mongodb-driver-kotlin-coroutine:$mongo_version")
     implementation("com.github.fergusmac:cliniko-kt:0.1.1")
+    implementation("mysql:mysql-connector-java:8.0.33")
 }
 
 tasks.test {
