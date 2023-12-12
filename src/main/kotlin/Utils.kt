@@ -23,3 +23,20 @@ fun <V> MutableMap<String, V?>.putAllPrefixed(prefix: String, items: Map<String,
 fun String?.nullIfBlank() : String? {
     return this?.let { it.ifBlank { null } }
 }
+
+/** Copies the list, inserting a new element, or updating it if a matching element already exists
+ * If the list is null, create a new list.
+ * upsertFunc takes in the existing element, if any
+ */
+fun <T: Any> List<T>?.upsertElement(filtr : (T) -> Boolean, upsertFunc : (T?) -> T, requireExisting : Boolean = false) : List<T> {
+
+    val result = this?.toMutableList() ?: mutableListOf()
+
+    val existing = result.find(filtr)?.also { result.remove(it) }
+
+    if (existing == null && requireExisting) return result
+
+    result.add(upsertFunc(existing))
+
+    return result
+}

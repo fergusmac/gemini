@@ -8,6 +8,8 @@ import memberDiff
 import nullIfBlank
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
+import upsertElement
+import java.sql.Ref
 
 
 interface MongoRow : Diffable {
@@ -25,8 +27,9 @@ data class Patient (
     val emergencyContact : Person? = null,
     val claimant : Claimant? = null,
     val billingInfo: BillingInfo? = null,
-    val referrals : Map<String, Referral>? = emptyMap(), //clinikoId (as string) -> Referral
-    val appointments : Map<String, Appointment>? = emptyMap() // clinikoId string -> Appt. We have to use strings as the key for maps in Mongo
+    //TODO sort these lists by date?
+    val referrals : List<Referral>? = emptyList(),
+    val appointments : List<Appointment>? = emptyList()
 ) : MongoRow
 {
 
@@ -84,46 +87,52 @@ data class Patient (
 
         fun combineCase(clinikoCase: ClinikoCase, patient : Patient) : Patient {
             // return a copy with the case added/updated
-            with (clinikoCase) {
-                val existingReferral = patient.referrals?.getOrDefault(id.toString(), null)
-                val allReferrals = patient.referrals?.toMutableMap() ?: mutableMapOf()
+            val updatedRefferals = patient.referrals.upsertElement(
+                filtr = { it.cliniko.id == clinikoCase.id },
+                upsertFunc = {
+                    Referral.fromCliniko(
+                        clinikoCase = clinikoCase,
+                        existing = it)
+                }
+            )
 
-                val newReferral = Referral.fromCliniko(clinikoCase = this, existing = existingReferral)
-                allReferrals[newReferral.cliniko.id.toString()] = newReferral
-
-                return patient.copy(referrals = allReferrals)
-            }
+            return patient.copy(referrals = updatedRefferals)
         }
 
         fun combineAppt(clinikoAppt: ClinikoAppointment, patient: Patient) : Patient {
             // return a copy with the appt added/updated
-            with (clinikoAppt) {
-                val existingAppt = patient.appointments?.getOrDefault(id.toString(), null)
-                val allAppointments = patient.appointments?.toMutableMap() ?: mutableMapOf()
+            val updatedAppts = patient.appointments.upsertElement(
+                filtr = { it.cliniko.id == clinikoAppt.id },
+                upsertFunc = {
+                    Appointment.fromCliniko(
+                        clinikoAppt = clinikoAppt,
+                        existing = it)
+                }
+            )
 
-                val newAppt = Appointment.fromCliniko(clinikoAppt = clinikoAppt, existing = existingAppt)
-                allAppointments[newAppt.cliniko.id.toString()] = newAppt
-
-                return patient.copy(appointments = allAppointments)
-            }
+            return patient.copy(appointments = updatedAppts)
         }
 
         fun combineAttendee(clinikoAttendee: ClinikoAttendee, patient: Patient) : Patient {
             // return a copy with the matching appt updated with the attendee
-            with (clinikoAttendee) {
+            // if appointment hasnt been seen yet, return patient unchanged and try again later
 
-                val bookingId = booking.links.toId()!! // checked not null in caller
+            val bookingId = clinikoAttendee.booking.links.toId()!! // checked not null in caller
+            var wasChanged = false
 
-                // if appointment hasnt been seen yet, return patient unchanged and try again later
-                val existingAppt = patient.appointments?.getOrDefault(bookingId.toString(), null) ?: return patient
+            val updatedAppts = patient.appointments.upsertElement(
+                filtr = { it.cliniko.id == bookingId },
+                upsertFunc = {
+                    wasChanged = true
+                    Appointment.combineAttendee(
+                        attendee = clinikoAttendee,
+                        existing = it!!
+                    )
+                },
+                requireExisting = true
+            )
 
-                val allAppointments = patient.appointments.toMutableMap()
-
-                val newAppt = Appointment.combineAttendee(attendee = clinikoAttendee, existing = existingAppt)
-                allAppointments[newAppt.cliniko.id.toString()] = newAppt
-
-                return patient.copy(appointments = allAppointments)
-            }
+            return if (wasChanged) patient.copy(appointments = updatedAppts) else patient
         }
     }
 
@@ -157,6 +166,7 @@ data class Claimant (
 }
 
 
+//TODO add a human readable label
 data class Referral (
     val id: ObjectId,
     val cliniko : ClinikoObject,
@@ -193,6 +203,7 @@ data class Referral (
 }
 
 
+//TODO add a human readable label
 data class Appointment (
     val id: ObjectId,
     val cliniko : ClinikoObject,
@@ -278,3 +289,5 @@ data class BillingInfo(
     val billingContact : Person?,
     val manualBilling: Boolean
 )
+
+

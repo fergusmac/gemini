@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import upsertElement
 import java.time.format.DateTimeFormatter
 
 private val logger = KotlinLogging.logger {}
@@ -38,7 +39,7 @@ data class PractTransferInfo(
 )
 
 data class ApptTransferInfo(
-    val id: String,
+    val id: Long,
     val dateClaimed : LocalDate?,
     val wasInvoiced : Boolean
 )
@@ -197,7 +198,7 @@ class SqlMigrator(
             }
 
             val info = ApptTransferInfo(
-                id = resultSet.getString("id"),
+                id = resultSet.getLong("id"),
                 dateClaimed = dateClaimed,
                 wasInvoiced = wasInvoiced
             )
@@ -208,23 +209,20 @@ class SqlMigrator(
                 continue
             }
 
-            val existing : Appointment? = patient.appointments?.getOrDefault(info.id, null)
-            if (existing == null) {
-                logger.error { "Could not find appointment ${info.id} on patient retrieved from mongoDB" }
-                continue
-            }
-
-            val updatedAppt = existing.copy(
-                dateClaimed = info.dateClaimed,
-                wasInvoiced = info.wasInvoiced
+            val updatedAppts = patient.appointments.upsertElement(
+                filtr = { it.cliniko.id == info.id },
+                upsertFunc = {
+                    it!!.copy(
+                        dateClaimed = info.dateClaimed,
+                        wasInvoiced = info.wasInvoiced
+                    )
+                },
+                requireExisting = true
             )
 
-            val updatedApptMap = patient.appointments.toMutableMap()
-            updatedApptMap.put(info.id, updatedAppt)
+            val updatedPatient = patient.copy(appointments = updatedAppts)
 
-            val updatedPatient = patient.copy(appointments = updatedApptMap)
-
-            val updatesMap = updatedPatient.diff(existing)
+            val updatesMap = updatedPatient.diff(patient)
 
             if (updatesMap.isNullOrEmpty()) {
                 continue
