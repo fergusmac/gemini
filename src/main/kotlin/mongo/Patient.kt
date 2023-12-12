@@ -26,7 +26,7 @@ data class Patient (
     val claimant : Claimant? = null,
     val billingInfo: BillingInfo? = null,
     val referrals : Map<String, Referral>? = emptyMap(), //clinikoId (as string) -> Referral
-    val appointments : Map<String, Appointment>? = emptyMap() // clinikoId string -> Appt
+    val appointments : Map<String, Appointment>? = emptyMap() // clinikoId string -> Appt. We have to use strings as the key for maps in Mongo
 ) : MongoRow
 {
 
@@ -203,7 +203,9 @@ data class Appointment (
     val patientTelehealthUrl : String?,
     val referralId : Long?,
     val cancellation : Cancellation?,
-    val hasArrived : Boolean
+    val hasArrived : Boolean,
+    val wasInvoiced : Boolean?,
+    val dateClaimed : LocalDate?
 
 ) : Diffable {
 
@@ -238,7 +240,9 @@ data class Appointment (
                     patientTelehealthUrl = existing?.patientTelehealthUrl,
                     referralId = patientCase?.links?.toId(),
                     cancellation = cancellation,
-                    hasArrived = patientArrived
+                    hasArrived = patientArrived,
+                    wasInvoiced = existing?.wasInvoiced,
+                    dateClaimed = existing?.dateClaimed
                 )
             }
         }

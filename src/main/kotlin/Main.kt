@@ -51,4 +51,5 @@ suspend fun main(args: Array<String>) {
     val sqlMigrator = SqlMigrator(sqlConnectionString = sqlConnectionString, clinikoAdapter = adapter)
     sqlMigrator.transferPatients()
     sqlMigrator.transferPracts()
+    sqlMigrator.transferAppointments()
 }

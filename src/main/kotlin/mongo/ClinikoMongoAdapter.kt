@@ -142,6 +142,12 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
         }
     }
 
+    suspend fun getPatientWithAppointment(clinikoApptId: String): Patient? {
+
+        val query = eq("appointments.cliniko.id", clinikoApptId)
+
+        return mongo.patients.find(query).firstOrNull()
+    }
 
 
     suspend fun getPatient(clinikoId : Long) : Patient? = getOne(clinikoId, mongo.patients)

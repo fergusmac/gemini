@@ -6,10 +6,14 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.bson.Document
 import java.sql.DriverManager
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import java.time.format.DateTimeFormatter
 
 private val logger = KotlinLogging.logger {}
 data class PatientTransferInfo(
-    val id: String,
+    val id: Long,
     val customerId: String,
     val claimantId: String?,
     val extraContactId: String?,
@@ -21,7 +25,7 @@ data class PatientTransferInfo(
 )
 
 data class PractTransferInfo(
-    val id: String,
+    val id: Long,
     val gpLetterTemplateId : String,
     val gpLetterFolderId : String,
     val acceptingIntakes : Boolean,
@@ -31,6 +35,12 @@ data class PractTransferInfo(
     val standardPriceDollars : Int,
     val xeroContactId : String?,
     val edpInitialTemplateId : String,
+)
+
+data class ApptTransferInfo(
+    val id: String,
+    val dateClaimed : LocalDate?,
+    val wasInvoiced : Boolean
 )
 
 class SqlMigrator(
@@ -46,8 +56,10 @@ class SqlMigrator(
         val resultSet = sqlConnection.prepareStatement("SELECT * FROM common_models_clinikopatient").executeQuery()
 
         while (resultSet.next()) {
+
+            //TODO transaction
             val info = PatientTransferInfo(
-                id = resultSet.getString("id"),
+                id = resultSet.getString("id").toLong(),
                 customerId = resultSet.getString("customer_id"),
                 claimantId = resultSet.getString("claimant_id"),
                 extraContactId = resultSet.getString("extra_contact_id"),
@@ -58,7 +70,7 @@ class SqlMigrator(
                 sendClaimReceipts = resultSet.getBoolean("send_claim_receipts")
             )
 
-            val existing = clinikoAdapter.getPatient(info.id.toLong())
+            val existing = clinikoAdapter.getPatient(info.id)
             if (existing == null) {
                 logger.error { "Could not find patient ${info.id} in mongoDB" }
                 continue
@@ -105,8 +117,10 @@ class SqlMigrator(
         val resultSet = sqlConnection.prepareStatement("SELECT * FROM common_models_clinikopractitioner").executeQuery()
 
         while (resultSet.next()) {
+
+            //TODO transaction
             val info = PractTransferInfo(
-                id = resultSet.getString("id"),
+                id = resultSet.getString("id").toLong(),
                 gpLetterTemplateId = resultSet.getString("gp_letter_template_id"),
                 gpLetterFolderId = resultSet.getString("gp_letter_folder_id"),
                 acceptingIntakes = resultSet.getBoolean("accepting_intakes"),
@@ -118,7 +132,7 @@ class SqlMigrator(
                 edpInitialTemplateId = resultSet.getString("edp_initial_template_id")
             )
 
-            val existing = clinikoAdapter.getPract(info.id.toLong())
+            val existing = clinikoAdapter.getPract(info.id)
             if (existing == null) {
                 logger.error { "Could not find practitioner ${info.id} in mongoDB" }
                 continue
@@ -155,6 +169,74 @@ class SqlMigrator(
 
             mongo.upsertOne(mongo.practs, updated.id, updatesMap)
         }
+    }
+
+
+    fun transferAppointments() = runBlocking {
+
+        val statement = sqlConnection.prepareStatement("SELECT * FROM common_models_clinikoappointment")
+        val resultSet = statement.executeQuery()
+
+        while (resultSet.next()) {
+            //TODO need to use a transaction
+
+            var dateClaimed : LocalDate? = null
+            var wasInvoiced = false
+
+            val eventsJsonStr = resultSet.getString("events")
+            if (!eventsJsonStr.isNullOrBlank()) {
+                val eventsJson = Json.parseToJsonElement(eventsJsonStr) as JsonObject
+                if ("sent_to_claim" in eventsJson) {
+                    val datetimeStr = eventsJson["sent_to_claim"].toString()
+                    val datetime = Instant.parse(datetimeStr.removeSurrounding("\""))
+                    dateClaimed = datetime.toLocalDateTime(timeZone = TimeZone.UTC).date
+                }
+                if ("invoiced" in eventsJson) {
+                    wasInvoiced = true
+                }
+            }
+
+            val info = ApptTransferInfo(
+                id = resultSet.getString("id"),
+                dateClaimed = dateClaimed,
+                wasInvoiced = wasInvoiced
+            )
+
+            val patient = clinikoAdapter.getPatientWithAppointment(info.id)
+            if (patient == null) {
+                logger.error { "Could not find appointment ${info.id} in mongoDB" }
+                continue
+            }
+
+            val existing : Appointment? = patient.appointments?.getOrDefault(info.id, null)
+            if (existing == null) {
+                logger.error { "Could not find appointment ${info.id} on patient retrieved from mongoDB" }
+                continue
+            }
+
+            val updatedAppt = existing.copy(
+                dateClaimed = info.dateClaimed,
+                wasInvoiced = info.wasInvoiced
+            )
+
+            val updatedApptMap = patient.appointments.toMutableMap()
+            updatedApptMap.put(info.id, updatedAppt)
+
+            val updatedPatient = patient.copy(appointments = updatedApptMap)
+
+            val updatesMap = updatedPatient.diff(existing)
+
+            if (updatesMap.isNullOrEmpty()) {
+                continue
+            }
+
+            logger.info { "Updating row ${updatedPatient.id} with sql row ${info.id} in Mongo" }
+
+            mongo.upsertOne(mongo.patients, updatedPatient.id, updatesMap)
+        }
+
+        statement.close()
+
     }
 
 }
