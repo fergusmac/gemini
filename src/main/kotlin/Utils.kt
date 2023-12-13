@@ -40,3 +40,13 @@ fun <T: Any> List<T>?.upsertElement(filtr : (T) -> Boolean, upsertFunc : (T?) ->
 
     return result
 }
+
+fun <T> List<T>.isSortedWith(comparator: Comparator<T>): Boolean {
+    if (size < 2) return true
+    for (i in 1..<size) {
+        if (comparator.compare(this[i - 1], this[i]) > 0) {
+            return false
+        }
+    }
+    return true
+}

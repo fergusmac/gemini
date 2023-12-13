@@ -1,6 +1,7 @@
 package mongo
 
 import Diffable
+import ListDiffable
 import cliniko.sections.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -176,7 +177,7 @@ data class Referral (
     val maxAppointments : Int?,
     val closedInCliniko : Boolean,
     val clinikoContactId : Long?,
-) : Diffable {
+) : ListDiffable {
 
     companion object {
         fun fromCliniko(clinikoCase : ClinikoCase, existing : Referral?) : Referral {
@@ -199,6 +200,9 @@ data class Referral (
             }
         }
     }
+
+    override fun getDiffKey(): String = cliniko.id.toString()
+
     override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old = other as Referral?, new = this)
 }
 
@@ -218,7 +222,7 @@ data class Appointment (
     val wasInvoiced : Boolean?,
     val dateClaimed : LocalDate?
 
-) : Diffable {
+) : ListDiffable {
 
     companion object {
 
@@ -265,6 +269,9 @@ data class Appointment (
                 patientTelehealthUrl = attendee.telehealthUrl)
         }
     }
+
+    override fun getDiffKey(): String = cliniko.id.toString()
+
     override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Appointment?, new = this)
 
 }

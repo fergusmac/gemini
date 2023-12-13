@@ -53,6 +53,17 @@ class MongoWrapper(connectionString : ConnectionString, databaseName: String)
         )
     }
 
+    suspend fun <T : Any> removeArrayNulls(collection: MongoCollection<T>, id : ObjectId, arrayFields : List<String>) {
+        val updatesBson = Updates.combine(
+            arrayFields.map { Updates.pull(it, null) }
+        )
+
+        collection.updateOne(
+            filter = Filters.eq("_id", id),
+            update = updatesBson
+        )
+    }
+
     suspend fun <T : Any> getAll(collection: MongoCollection<T>) : List<T> {
         return collection.find().toList()
     }

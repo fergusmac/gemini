@@ -25,7 +25,7 @@ data class Practitioner (
     val xeroContactId : String?,
     val isTakingIntakes : Boolean?,
     val lettersFolderId : String?,
-    val letterTemplates : Map<String, String>? //letter type -> template gdocs id //TODO convert to array
+    val letterTemplates : Map<String, String>? //letter type -> template gdocs id
 ) : MongoRow
 {
 
