@@ -115,6 +115,7 @@ fun listDiff(old : List<ListDiffable>?, new : List<ListDiffable>?, name: String)
 
     val results = mutableMapOf<String, Any?>()
 
+    //FIXME some sort of off by 1 error here? See Marin M.
     var count = old.size
 
     for (newElem in new) {
