@@ -110,12 +110,22 @@ fun listDiff(old : List<ListDiffable>?, new : List<ListDiffable>?, name: String)
     //insert entire array
     if (old == null) return mapOf(name to new)
 
+    //check there are no duplicate keys in the lists
+    old.groupBy { it.getDiffKey() }
+        .forEach { key, items ->
+            if (items.size > 1) throw IllegalArgumentException("Duplicate key in old list: $key")
+        }
+
+    new.groupBy { it.getDiffKey() }
+        .forEach { key, items ->
+            if (items.size > 1) throw IllegalArgumentException("Duplicate key in new list: $key")
+        }
+
     // key -> index in old list
     val oldIndexesByKey = old.mapIndexed { index, item -> item.getDiffKey() to index }.toMap()
 
     val results = mutableMapOf<String, Any?>()
 
-    //FIXME some sort of off by 1 error here? See Marin M.
     var count = old.size
 
     for (newElem in new) {
@@ -125,7 +135,7 @@ fun listDiff(old : List<ListDiffable>?, new : List<ListDiffable>?, name: String)
             //update existing element
             val oldIdx = oldIndexesByKey[newKey]!!
             val oldElem = old[oldIdx]
-            results.putAllPrefixed(prefix=oldIdx.toString(), items=oldElem.diff(newElem))
+            results.putAllPrefixed(prefix=oldIdx.toString(), items=newElem.diff(oldElem))
         }
         else {
             //push on to end

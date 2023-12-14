@@ -1,3 +1,6 @@
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 infix fun String.dot(other: String) : String {
     return "$this.$other"
@@ -49,4 +52,12 @@ fun <T> List<T>.isSortedWith(comparator: Comparator<T>): Boolean {
         }
     }
     return true
+}
+
+
+fun printInstantSydney(instant : Instant) : String
+{
+    val dt = instant.toLocalDateTime(TimeZone.of("Australia/Sydney"))
+    //format string is to zero-pad the minute
+    return "${dt.year}/${dt.monthNumber}/${dt.dayOfMonth} ${dt.hour}:${"%02d".format(dt.minute)}"
 }

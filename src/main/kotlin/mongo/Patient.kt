@@ -9,6 +9,7 @@ import memberDiff
 import nullIfBlank
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
+import printInstantSydney
 import upsertElement
 import java.sql.Ref
 
@@ -220,10 +221,10 @@ data class Appointment (
     val cancellation : Cancellation?,
     val hasArrived : Boolean,
     val wasInvoiced : Boolean?,
-    val dateClaimed : LocalDate?
+    val dateClaimed : LocalDate?,
+    val label : String?
 
 ) : ListDiffable {
-
     companion object {
 
         fun fromCliniko(clinikoAppt: ClinikoAppointment, existing : Appointment?) : Appointment {
@@ -257,7 +258,8 @@ data class Appointment (
                     cancellation = cancellation,
                     hasArrived = patientArrived,
                     wasInvoiced = existing?.wasInvoiced,
-                    dateClaimed = existing?.dateClaimed
+                    dateClaimed = existing?.dateClaimed,
+                    label = printInstantSydney(startsAt)
                 )
             }
         }
