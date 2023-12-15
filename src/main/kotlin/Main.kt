@@ -32,9 +32,9 @@ suspend fun main(args: Array<String>) {
     /*cliniko.getApptTypes()
     cliniko.getAvailabilities()
     cliniko.getGroupAppts()*/
-    /*val practs = cliniko.getPractitioners()
+    val practs = cliniko.getPractitioners()
     val users = cliniko.getUsers()
-    val prns = cliniko.getPractNumbers()*/
+    val prns = cliniko.getPractNumbers()
     //cliniko.getBusinesses()
 
 
@@ -42,13 +42,13 @@ suspend fun main(args: Array<String>) {
     cases.values.forEach { adapter.updatePatientWithCase(it) }
     appts.values.forEach { adapter.updatePatientWithAppt(it) }
     attendees.values.forEach { adapter.updatePatientWithAttendee(it) }
-    //practs.values.forEach { adapter.addOrUpdatePract(it) }
-    //users.values.forEach { adapter.updatePractWithUser(it) }
-    //prns.values.forEach { adapter.updatePractWithNumber(it) }
+    practs.values.forEach { adapter.addOrUpdatePract(it) }
+    users.values.forEach { adapter.updatePractWithUser(it) }
+    prns.values.forEach { adapter.updatePractWithNumber(it) }
 
     val sqlConnectionString : String  by localProperties
     val sqlMigrator = SqlMigrator(sqlConnectionString = sqlConnectionString, clinikoAdapter = adapter)
     sqlMigrator.transferPatients()
-    //sqlMigrator.transferPracts()
+    sqlMigrator.transferPracts()
     sqlMigrator.transferAppointments()
 }

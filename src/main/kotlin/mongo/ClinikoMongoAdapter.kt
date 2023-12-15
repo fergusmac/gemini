@@ -137,7 +137,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
             logger.info { "Updating row ${updated.id} with cliniko row ${clinikoObj.id} in Mongo" }
 
-            mongo.upsertOne(mongo.patients, updated.id, updatesMap)
+            mongo.upsertOne(collection, updated.id, updatesMap)
 
         }
     }

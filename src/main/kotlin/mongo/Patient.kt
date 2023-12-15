@@ -8,18 +8,17 @@ import kotlinx.datetime.LocalDate
 import memberDiff
 import nullIfBlank
 import org.bson.codecs.pojo.annotations.BsonId
-import org.bson.types.ObjectId
 import printInstantSydney
 import upsertElement
 import java.sql.Ref
 
 
 interface MongoRow : Diffable {
-    val id : ObjectId
+    val id : Long
 }
 
 data class Patient (
-    @BsonId override val id: ObjectId,
+    @BsonId override val id: Long,
     val label : String,
     val cliniko : ClinikoObject,
     val person: Person,
@@ -29,7 +28,6 @@ data class Patient (
     val emergencyContact : Person? = null,
     val claimant : Claimant? = null,
     val billingInfo: BillingInfo? = null,
-    //TODO sort these lists by date?
     val referrals : List<Referral>? = emptyList(),
     val appointments : List<Appointment>? = emptyList()
 ) : MongoRow
@@ -49,7 +47,7 @@ data class Patient (
 
 
                 return Patient(
-                    id = existing?.id ?: ObjectId(),
+                    id = id,
                     label = name.getFull(),
                     person = Person(
                         name = name,
@@ -170,7 +168,6 @@ data class Claimant (
 
 //TODO add a human readable label
 data class Referral (
-    val id: ObjectId,
     val cliniko : ClinikoObject,
     val name : String,
     val referralDate : LocalDate?,
@@ -184,7 +181,6 @@ data class Referral (
         fun fromCliniko(clinikoCase : ClinikoCase, existing : Referral?) : Referral {
             with (clinikoCase) {
                 return Referral(
-                    id = existing?.id ?: ObjectId(),
                     cliniko = ClinikoObject(
                         id = id,
                         created = createdAt,
@@ -208,9 +204,8 @@ data class Referral (
 }
 
 
-//TODO add a human readable label
 data class Appointment (
-    val id: ObjectId,
+    val label : String?,
     val cliniko : ClinikoObject,
     val startTime : Instant,
     val endTime : Instant,
@@ -222,8 +217,6 @@ data class Appointment (
     val hasArrived : Boolean,
     val wasInvoiced : Boolean?,
     val dateClaimed : LocalDate?,
-    val label : String?
-
 ) : ListDiffable {
     companion object {
 
@@ -242,7 +235,6 @@ data class Appointment (
                 }
 
                 return Appointment(
-                    id = existing?.id ?: ObjectId(),
                     cliniko = ClinikoObject(
                         id = id,
                         created = createdAt,

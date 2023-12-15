@@ -33,7 +33,7 @@ class MongoWrapper(connectionString : ConnectionString, databaseName: String)
     val apptTypes = db.getCollection<AppointmentType>(collectionName = "apptTypes")
 
 
-    suspend fun <T : Any> upsertOne(collection : MongoCollection<T>, id : ObjectId, updatesMap: Map<String, Any?>) {
+    suspend fun <T : Any> upsertOne(collection : MongoCollection<T>, id : Long, updatesMap: Map<String, Any?>) {
         val updatesBson = Updates.combine(
             updatesMap.map {
                 if (it.value == null) {

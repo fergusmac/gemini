@@ -9,7 +9,7 @@ import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 data class Practitioner (
-    @BsonId override val id: ObjectId,
+    @BsonId override val id: Long,
     val label : String,
     val kind : PractitionerKind?,
     val clinikoPract : ClinikoObject?,
@@ -40,7 +40,7 @@ data class Practitioner (
                 )
 
                 return Practitioner(
-                    id = existing?.id ?: ObjectId(),
+                    id = id,
                     label = name.getFull(),
                     kind = PractitionerKind.fromString(designation),
                     clinikoPract = ClinikoObject(
