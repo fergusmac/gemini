@@ -34,7 +34,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
             clinikoObj = clinikoCase,
             clinikoId = clinikoCase.patient.links.toId(),
             collection = mongo.patients,
-            updateFunc = { clinObj, mongObj -> Patient.combineCase(clinObj, mongObj!!) },
+            updateFunc = { clinObj, mongObj -> mongObj!!.copyCombineCase(clinObj) },
             allowCreate = false)
     }
 
@@ -43,7 +43,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
             clinikoObj = clinikoAppt,
             clinikoId = clinikoAppt.patient.links.toId(),
             collection = mongo.patients,
-            updateFunc = { clinObj, mongObj -> Patient.combineAppt(clinObj, mongObj!!) },
+            updateFunc = { clinObj, mongObj -> mongObj!!.copyCombineAppt(clinObj) },
             allowCreate = false)
     }
 
@@ -59,7 +59,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
             clinikoObj = clinikoAttendee,
             clinikoId = clinikoAttendee.patient.links.toId(),
             collection = mongo.patients,
-            updateFunc = { clinObj, mongObj -> Patient.combineAttendee(clinObj, mongObj!!) },
+            updateFunc = { clinObj, mongObj -> mongObj!!.copyCombineAttendee(clinObj) },
             allowCreate = false)
     }
 

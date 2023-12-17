@@ -31,7 +31,7 @@ fun String?.nullIfBlank() : String? {
  * If the list is null, create a new list.
  * upsertFunc takes in the existing element, if any
  */
-fun <T: Any> List<T>?.upsertElement(filtr : (T) -> Boolean, upsertFunc : (T?) -> T, requireExisting : Boolean = false) : List<T> {
+fun <T: Any> List<T>?.copyAndUpsert(filtr : (T) -> Boolean, upsertFunc : (T?) -> T, requireExisting : Boolean = false) : List<T> {
 
     val result = this?.toMutableList() ?: mutableListOf()
 

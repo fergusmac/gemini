@@ -1,16 +1,12 @@
 package mongo
 
-import com.mongodb.kotlin.client.coroutine.MongoClient
-import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.bson.Document
 import java.sql.DriverManager
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import upsertElement
-import java.time.format.DateTimeFormatter
+import copyAndUpsert
 
 private val logger = KotlinLogging.logger {}
 data class PatientTransferInfo(
@@ -209,7 +205,7 @@ class SqlMigrator(
                 continue
             }
 
-            val updatedAppts = patient.appointments.upsertElement(
+            val updatedAppts = patient.appointments.copyAndUpsert(
                 filtr = { it.cliniko.id == info.id },
                 upsertFunc = {
                     it!!.copy(
