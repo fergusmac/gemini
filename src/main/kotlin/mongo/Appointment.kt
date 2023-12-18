@@ -10,8 +10,9 @@ import memberDiff
 import printInstantSydney
 
 data class Appointment (
+    val id: Long,
     val label : String?,
-    val cliniko : ClinikoObject,
+    val cliniko : ClinikoTimestamps,
     val startTime : Instant,
     val endTime : Instant,
     val wasBookedOnline : Boolean,
@@ -40,8 +41,8 @@ data class Appointment (
                 }
 
                 return Appointment(
-                    cliniko = ClinikoObject(
-                        id = id,
+                    id = id,
+                    cliniko = ClinikoTimestamps(
                         created = createdAt,
                         modified = updatedAt,
                         archived = archivedAt,
@@ -69,7 +70,7 @@ data class Appointment (
             patientTelehealthUrl = attendee.telehealthUrl)
     }
 
-    override fun getDiffKey(): String = cliniko.id.toString()
+    override fun getDiffKey(): String = id.toString()
 
     override fun diff(other: Any?): Map<String, Any?>? = memberDiff(old = other as Appointment?, new = this)
 

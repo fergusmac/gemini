@@ -15,7 +15,7 @@ interface MongoRow : Diffable {
 data class Patient (
     @BsonId override val id: Long,
     val label : String,
-    val cliniko : ClinikoObject,
+    val cliniko : ClinikoTimestamps,
     val person: Person,
     val medicare: MedicareCard? = null,
     val ndisNumber: Long? = null,
@@ -61,8 +61,7 @@ data class Patient (
                         pronouns = pronouns?.let { Pronouns.fromCliniko(it) },
                     ),
                     medicare = MedicareCard.fromCliniko(medicare, medicareReferenceNumber),
-                    cliniko = ClinikoObject(
-                        id = id,
+                    cliniko = ClinikoTimestamps(
                         created = createdAt,
                         modified = updatedAt,
                         archived = archivedAt
@@ -82,7 +81,7 @@ data class Patient (
     fun copyCombineAppt(clinikoAppt: ClinikoAppointment) : Patient {
         // return a copy with the appt added/updated
         val updatedAppts = appointments.copyAndUpsert(
-            filtr = { it.cliniko.id == clinikoAppt.id },
+            filtr = { it.id == clinikoAppt.id },
             upsertFunc = {
                 Appointment.fromCliniko(
                     clinikoAppt = clinikoAppt,
@@ -96,7 +95,7 @@ data class Patient (
     fun copyCombineCase(clinikoCase: ClinikoCase) : Patient {
         // return a copy with the case added/updated
         val updatedRefferals = referrals.copyAndUpsert(
-            filtr = { it.cliniko.id == clinikoCase.id },
+            filtr = { it.id == clinikoCase.id },
             upsertFunc = {
                 Referral.fromCliniko(
                     clinikoCase = clinikoCase,
@@ -115,7 +114,7 @@ data class Patient (
         var wasChanged = false
 
         val updatedAppts = appointments.copyAndUpsert(
-            filtr = { it.cliniko.id == bookingId },
+            filtr = { it.id == bookingId },
             upsertFunc = {
                 wasChanged = true
                 it!!.copyCombineAttendee(attendee = clinikoAttendee)

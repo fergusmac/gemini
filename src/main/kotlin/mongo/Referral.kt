@@ -7,7 +7,8 @@ import memberDiff
 
 //TODO add a human readable label
 data class Referral (
-    val cliniko : ClinikoObject,
+    val id : Long,
+    val cliniko : ClinikoTimestamps,
     val name : String,
     val referralDate : LocalDate?,
     val expiryDate : LocalDate?,
@@ -20,8 +21,8 @@ data class Referral (
         fun fromCliniko(clinikoCase : ClinikoCase, existing : Referral?) : Referral {
             with (clinikoCase) {
                 return Referral(
-                    cliniko = ClinikoObject(
-                        id = id,
+                    id = id,
+                    cliniko = ClinikoTimestamps(
                         created = createdAt,
                         modified = updatedAt,
                         archived = archivedAt
@@ -37,7 +38,7 @@ data class Referral (
         }
     }
 
-    override fun getDiffKey(): String = cliniko.id.toString()
+    override fun getDiffKey(): String = id.toString()
 
     override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old = other as Referral?, new = this)
 }

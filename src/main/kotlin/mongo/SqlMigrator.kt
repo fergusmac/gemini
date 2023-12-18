@@ -206,7 +206,7 @@ class SqlMigrator(
             }
 
             val updatedAppts = patient.appointments.copyAndUpsert(
-                filtr = { it.cliniko.id == info.id },
+                filtr = { it.id == info.id },
                 upsertFunc = {
                     it!!.copy(
                         dateClaimed = info.dateClaimed,

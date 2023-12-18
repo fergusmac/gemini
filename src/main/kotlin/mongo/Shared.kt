@@ -36,14 +36,13 @@ data class Address (
     override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old = other as Address?, new = this)
 }
 
-data class ClinikoObject (
-    val id : Long,
+data class ClinikoTimestamps (
     val created : Instant? = null,
     val modified : Instant? = null,
     val archived : Instant? = null
 ) : Diffable
 {
-    override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old = other as ClinikoObject?, new = this)
+    override fun diff(other: Any?) : Map<String, Any?>? = memberDiff(old = other as ClinikoTimestamps?, new = this)
 }
 
 data class Person (

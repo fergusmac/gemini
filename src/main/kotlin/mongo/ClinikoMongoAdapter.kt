@@ -2,19 +2,11 @@ package mongo
 
 import cliniko.ClinikoRow
 import cliniko.sections.*
-import com.mongodb.ConnectionString
-import com.mongodb.MongoClientSettings
 import com.mongodb.client.model.Filters.*
-import com.mongodb.client.model.UpdateOptions
-import com.mongodb.client.model.Updates.*
-import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoCollection
-import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
-import org.bson.codecs.configuration.CodecRegistries
-import org.bson.types.ObjectId
 
 private val logger = KotlinLogging.logger {}
 class ClinikoMongoAdapter (val mongo : MongoWrapper) {
@@ -118,7 +110,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
         mongo.client.transact { session ->
 
-            val mongoObj = getOne(clinikoId = clinikoId, collection = collection, fieldName = mongoFieldName)
+            val mongoObj = getOne(id = clinikoId, collection = collection, fieldName = mongoFieldName)
 
             if (!allowCreate && mongoObj == null) {
                 // row hasn't yet been seen by mongo, try again later
@@ -150,24 +142,24 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
     }
 
 
-    suspend fun getPatient(clinikoId : Long) : Patient? = getOne(clinikoId, mongo.patients)
+    suspend fun getPatient(id : Long) : Patient? = getOne(id, mongo.patients)
 
-    suspend fun getPatients(clinikoIds : List<Long>) : List<Patient> = getMultiple(clinikoIds, mongo.patients)
+    suspend fun getPatients(ids : List<Long>) : List<Patient> = getMultiple(ids, mongo.patients)
 
-    suspend fun getPract(clinikoId : Long) : Practitioner? = getOne(clinikoId, mongo.practs, fieldName = "clinikoPract.id")
+    suspend fun getPract(id : Long) : Practitioner? = getOne(id, mongo.practs, fieldName = "clinikoPract.id")
 
-    suspend fun getPractByUser(clinikoUserId: Long) : Practitioner? = getOne(clinikoUserId, mongo.practs, fieldName = "clinikoUser.id")
+    suspend fun getPractByUser(userId: Long) : Practitioner? = getOne(userId, mongo.practs, fieldName = "clinikoUser.id")
 
     suspend fun getPracts() : List<Practitioner> = mongo.getAll(mongo.practs)
 
-    suspend fun getAppointmentType(clinikoId: Long) : AppointmentType? = getOne(clinikoId, mongo.apptTypes)
+    suspend fun getAppointmentType(id: Long) : AppointmentType? = getOne(id, mongo.apptTypes)
 
-    suspend fun <T : Any> getOne(clinikoId : Long, collection: MongoCollection<T>, fieldName : String = "cliniko.id") : T? {
-        return collection.find(eq(fieldName, clinikoId)).firstOrNull()
+    suspend fun <T : Any> getOne(id : Long, collection: MongoCollection<T>, fieldName : String = "id") : T? {
+        return collection.find(eq(fieldName, id)).firstOrNull()
     }
 
-    suspend fun <T : Any> getMultiple(clinikoIds : List<Long>, collection: MongoCollection<T>, fieldName : String = "cliniko.id") : List<T> {
-        return collection.find(`in`(fieldName, clinikoIds)).toList()
+    suspend fun <T : Any> getMultiple(ids : List<Long>, collection: MongoCollection<T>, fieldName : String = "id") : List<T> {
+        return collection.find(`in`(fieldName, ids)).toList()
     }
 }
 

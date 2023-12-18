@@ -1,14 +1,11 @@
 package mongo
 
-import Diffable
 import cliniko.sections.ClinikoApptType
 import memberDiff
 import org.bson.codecs.pojo.annotations.BsonId
-import org.bson.types.ObjectId
 
 data class AppointmentType (
     @BsonId override val id: Long,
-    val cliniko : ClinikoObject,
     val name : String,
     val isTelehealth : Boolean,
 ) : MongoRow {
@@ -19,7 +16,6 @@ data class AppointmentType (
             with (clinikoApptType) {
                 return AppointmentType(
                     id = id,
-                    cliniko = ClinikoObject(id = id),
                     name = name,
                     isTelehealth = telehealthEnabled
                 )

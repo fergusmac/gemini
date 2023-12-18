@@ -1,19 +1,17 @@
 package mongo
 
-import Diffable
 import cliniko.sections.ClinikoPractNumber
 import cliniko.sections.ClinikoPractitioner
 import cliniko.sections.ClinikoUser
 import memberDiff
 import org.bson.codecs.pojo.annotations.BsonId
-import org.bson.types.ObjectId
 
 data class Practitioner (
     @BsonId override val id: Long,
     val label : String,
     val kind : PractitionerKind?,
-    val clinikoPract : ClinikoObject?,
-    val clinikoUser : ClinikoObject?,
+    val cliniko : ClinikoTimestamps?,
+    val user : User?,
     val person : Person,
     val isActive : Boolean,
     var providerNumber : PractitionerNumber?,
@@ -43,14 +41,13 @@ data class Practitioner (
                     id = id,
                     label = name.getFull(),
                     kind = PractitionerKind.fromString(designation),
-                    clinikoPract = ClinikoObject(
-                        id = id,
+                    cliniko = ClinikoTimestamps(
                         created = createdAt,
                         modified = updatedAt,
                     ),
                     //if user not already linked, grab the user id from the pract
-                    clinikoUser = existing?.clinikoUser ?: user.links.toId()?.let {
-                        ClinikoObject(id= it)
+                    user = existing?.user ?: user.links.toId()?.let {
+                        User(id = it)
                     },
                     person = Person(
                         name = name,
@@ -76,10 +73,12 @@ data class Practitioner (
             // return a copy with the user updated
             with (clinikoUser) {
                 return pract.copy(
-                    clinikoUser = ClinikoObject(
+                    user = User(
                         id = id,
-                        created = createdAt,
-                        modified = updatedAt
+                        cliniko = ClinikoTimestamps(
+                            created = createdAt,
+                            modified = updatedAt
+                        )
                     ),
                     person = pract.person.copy(
                         email = email,
@@ -100,8 +99,7 @@ data class Practitioner (
                 val practNumber = PractitionerNumber(
                     id = referenceNumber!!,
                     description = name ?: "",
-                    cliniko = ClinikoObject(
-                        id = id,
+                    cliniko = ClinikoTimestamps(
                         created = createdAt,
                         modified = updatedAt
                     )
@@ -130,7 +128,12 @@ data class Practitioner (
 data class PractitionerNumber (
     val id : String,
     val description: String,
-    val cliniko : ClinikoObject
+    val cliniko : ClinikoTimestamps
+)
+
+data class User (
+    val id : Long,
+    val cliniko : ClinikoTimestamps? = null
 )
 
 
