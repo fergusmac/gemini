@@ -1,4 +1,4 @@
-package mongo
+package mongo.types
 
 import Diffable
 import cliniko.PhoneNumber

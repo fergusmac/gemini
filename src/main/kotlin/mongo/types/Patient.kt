@@ -1,4 +1,4 @@
-package mongo
+package mongo.types
 
 import Diffable
 import cliniko.sections.*
@@ -85,7 +85,8 @@ data class Patient (
             upsertFunc = {
                 Appointment.fromCliniko(
                     clinikoAppt = clinikoAppt,
-                    existing = it)
+                    existing = it
+                )
             }
         )
 
@@ -99,7 +100,8 @@ data class Patient (
             upsertFunc = {
                 Referral.fromCliniko(
                     clinikoCase = clinikoCase,
-                    existing = it)
+                    existing = it
+                )
             }
         )
 

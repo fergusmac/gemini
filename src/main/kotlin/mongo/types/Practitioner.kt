@@ -1,4 +1,4 @@
-package mongo
+package mongo.types
 
 import cliniko.sections.ClinikoPractNumber
 import cliniko.sections.ClinikoPractitioner

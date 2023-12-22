@@ -1,15 +1,71 @@
 package mongo
 
+import cliniko.ClinikoClient
 import cliniko.ClinikoRow
 import cliniko.sections.*
+import cliniko.instantInRange
 import com.mongodb.client.model.Filters.*
 import com.mongodb.kotlin.client.coroutine.MongoCollection
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Instant
+import kotlinx.datetime.Clock
+import mongo.types.*
 
 private val logger = KotlinLogging.logger {}
 class ClinikoMongoAdapter (val mongo : MongoWrapper) {
+
+
+    fun updateAll(cliniko : ClinikoClient) {
+        runBlocking {
+            coroutineScope {
+
+                val metadata = mongo.getSingleton(mongo.metadata) ?: MongoMetadata()
+                val lastUpdate = metadata.lastClinikoUpdate
+                val now = Clock.System.now() // this is utc
+
+                val filter = instantInRange(field = "updated_at", minInstant = lastUpdate, maxInstant = now)
+
+                //download all the rows from cliniko, asynchronously
+                val getPatients = async { cliniko.getPatients(params = filter) }
+                val getCases = async { cliniko.getCases(params = filter) }
+                val getContacts = async { cliniko.getContacts(params = filter) }
+                val getAppts = async { cliniko.getAppointments(params = filter) }
+                val getGroupAppts = async { cliniko.getGroupAppts(params = filter) }
+                val getAttendees = async { cliniko.getAttendees(params = filter) }
+                val getApptTypes = async { cliniko.getApptTypes(params = filter) }
+                val getAvailabilities = async { cliniko.getAvailabilities(params = filter) }
+                val getPractitioners = async { cliniko.getPractitioners(params = filter) }
+                val getUsers = async { cliniko.getUsers(params = filter) }
+                val getPractNumbers = async { cliniko.getPractNumbers(params = filter) }
+                val getBusinesses = async { cliniko.getBusinesses(params = filter) }
+                val getUnavailabilities = async { cliniko.getUnavailabilities(params = filter) }
+
+                //getBusinesses.await().values.forEach { }
+                getApptTypes.await().values.forEach { addOrUpdateApptType(it) }
+
+                getPatients.await().values.forEach { addOrUpdatePatient(it) }
+                getCases.await().values.forEach { updatePatientWithCase(it) }
+                //getContacts.await().values.forEach { adapter. }
+                getAppts.await().values.forEach { updatePatientWithAppt(it) }
+                getAttendees.await().values.forEach { updatePatientWithAttendee(it) }
+                //getGroupAppts.await().values.forEach { }
+
+                getPractitioners.await().values.forEach { addOrUpdatePract(it) }
+                getUsers.await().values.forEach { updatePractWithUser(it) }
+                getPractNumbers.await().values.forEach { updatePractWithNumber(it) }
+
+                //getAvailabilities.await().values.forEach { }
+                //getUnavailabilities.await().values.forEach { }
+
+                mongo.upsertSingleton(mongo.metadata, metadata.copy(lastClinikoUpdate = now))
+            }
+        }
+    }
 
     suspend fun addOrUpdatePatient(clinikoPatient : ClinikoPatient) {
 

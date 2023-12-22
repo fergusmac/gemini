@@ -7,6 +7,8 @@ import kotlinx.datetime.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import copyAndUpsert
+import mongo.types.BillingInfo
+import mongo.types.Claimant
 
 private val logger = KotlinLogging.logger {}
 data class PatientTransferInfo(

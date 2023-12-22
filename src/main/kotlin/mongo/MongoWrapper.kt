@@ -3,12 +3,15 @@ package mongo
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.client.model.Filters
+import com.mongodb.client.model.ReplaceOptions
 import com.mongodb.client.model.UpdateOptions
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoCollection
-import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import com.sun.media.sound.InvalidDataException
 import kotlinx.coroutines.flow.toList
+import mongo.types.*
+import org.bson.Document
 import org.bson.codecs.configuration.CodecRegistries
 import org.bson.types.ObjectId
 
@@ -31,7 +34,7 @@ class MongoWrapper(connectionString : ConnectionString, databaseName: String)
     val patients = db.getCollection<Patient>(collectionName = "patients")
     val practs = db.getCollection<Practitioner>(collectionName = "practs")
     val apptTypes = db.getCollection<AppointmentType>(collectionName = "apptTypes")
-
+    val metadata = db.getCollection<MongoMetadata>(collectionName = "metadata" )
 
     suspend fun <T : Any> upsertOne(collection : MongoCollection<T>, id : Long, updatesMap: Map<String, Any?>) {
         val updatesBson = Updates.combine(
@@ -44,7 +47,7 @@ class MongoWrapper(connectionString : ConnectionString, databaseName: String)
             }
         )
 
-        println(updatesBson) //TODO
+        println(updatesBson)
 
         collection.updateOne(
             filter = Filters.eq("_id", id),
@@ -66,5 +69,21 @@ class MongoWrapper(connectionString : ConnectionString, databaseName: String)
 
     suspend fun <T : Any> getAll(collection: MongoCollection<T>) : List<T> {
         return collection.find().toList()
+    }
+
+    suspend fun <T : Any> getSingleton(collection: MongoCollection<T>) : T? {
+        val lst = collection.find().toList()
+        return if (lst.isEmpty()) null
+        else if (lst.size == 1) lst[0]
+        else throw InvalidDataException("Multiple instances of singleton mongo document")
+    }
+
+    suspend fun <T: Any> upsertSingleton(collection: MongoCollection<T>, singleton: T) {
+        collection.replaceOne(
+            filter = Filters.eq(Document()), // match any
+            replacement = singleton,
+            options = ReplaceOptions().upsert(true)
+        )
+        collection.insertOne(singleton)
     }
 }

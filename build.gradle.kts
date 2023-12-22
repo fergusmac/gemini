@@ -41,7 +41,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
     implementation("org.mongodb:bson-kotlinx:$mongo_version")
     implementation("org.mongodb:mongodb-driver-kotlin-coroutine:$mongo_version")
-    implementation("com.github.fergusmac:cliniko-kt:0.1.1")
+    implementation("com.github.fergusmac:cliniko-kt:0.1.3")
     implementation("mysql:mysql-connector-java:8.0.33")
 }
 
