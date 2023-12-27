@@ -30,6 +30,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
                 val filter = instantInRange(field = "updated_at", minInstant = lastUpdate, maxInstant = now)
 
+                println("Here")
                 //download all the rows from cliniko, asynchronously
                 val getPatients = async { cliniko.getPatients(params = filter) }
                 val getCases = async { cliniko.getCases(params = filter) }

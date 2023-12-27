@@ -8,7 +8,7 @@ import com.mongodb.client.model.UpdateOptions
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoCollection
-import com.sun.media.sound.InvalidDataException
+import java.lang.IllegalStateException
 import kotlinx.coroutines.flow.toList
 import mongo.types.*
 import org.bson.Document
@@ -75,7 +75,7 @@ class MongoWrapper(connectionString : ConnectionString, databaseName: String)
         val lst = collection.find().toList()
         return if (lst.isEmpty()) null
         else if (lst.size == 1) lst[0]
-        else throw InvalidDataException("Multiple instances of singleton mongo document")
+        else throw IllegalStateException("Multiple instances of singleton mongo document")
     }
 
     suspend fun <T: Any> upsertSingleton(collection: MongoCollection<T>, singleton: T) {
