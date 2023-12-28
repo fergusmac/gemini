@@ -29,8 +29,8 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
                 val lastUpdate = metadata.lastClinikoUpdate
                 val now = Clock.System.now() // this is utc
 
-                //val filter = instantInRange(field = "updated_at", minInstant = lastUpdate, maxInstant = now)
-                val filter = parametersOf() //TODO allow option to update all, regardless of time
+                val filter = instantInRange(field = "updated_at", minInstant = lastUpdate, maxInstant = now)
+                //val filter = parametersOf() //TODO allow option to update all, regardless of time
 
                 //download all the rows from cliniko, asynchronously
                 val getPatients = async { cliniko.getPatients(params = filter) }
@@ -127,7 +127,6 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
         updateRowFromCliniko(
             clinikoObj = clinikoPractitioner,
             collection = mongo.practs,
-            mongoFieldName = "clinikoPract.id",
             updateFunc = { clinObj, mongObj -> Practitioner.fromCliniko(clinObj, mongObj) },
             allowCreate = true)
     }
@@ -137,7 +136,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
         updateRowFromCliniko(
             clinikoObj = clinikoUser,
             collection = mongo.practs,
-            mongoFieldName = "clinikoUser.id",
+            mongoFieldName = "user.id",
             updateFunc = { clinObj, mongObj -> Practitioner.combineUser(clinObj, mongObj!!) },
             allowCreate = false)
     }
@@ -148,7 +147,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
             clinikoObj = clinikoNumber,
             clinikoId = clinikoNumber.practitioner.links.toId(),
             collection = mongo.practs,
-            mongoFieldName = "clinikoUser.id",
+            mongoFieldName = "user.id",
             updateFunc = { clinObj, mongObj -> Practitioner.combineRefNumber(clinObj, mongObj!!) },
             allowCreate = false)
     }
@@ -204,9 +203,9 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
     suspend fun getPatients(ids : List<Long>) : List<Patient> = getMultiple(ids, mongo.patients)
 
-    suspend fun getPract(id : Long) : Practitioner? = getOne(id, mongo.practs, fieldName = "clinikoPract.id")
+    suspend fun getPract(id : Long) : Practitioner? = getOne(id, mongo.practs)
 
-    suspend fun getPractByUser(userId: Long) : Practitioner? = getOne(userId, mongo.practs, fieldName = "clinikoUser.id")
+    suspend fun getPractByUser(userId: Long) : Practitioner? = getOne(userId, mongo.practs, fieldName = "user.id")
 
     suspend fun getPracts() : List<Practitioner> = mongo.getAll(mongo.practs)
 
