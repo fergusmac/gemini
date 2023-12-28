@@ -84,6 +84,5 @@ class MongoWrapper(connectionString : ConnectionString, databaseName: String)
             replacement = singleton,
             options = ReplaceOptions().upsert(true)
         )
-        collection.insertOne(singleton)
     }
 }
