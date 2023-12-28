@@ -21,7 +21,7 @@ private val logger = KotlinLogging.logger {}
 class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
 
-    fun updateAll(cliniko : ClinikoClient) {
+    fun updateAll(cliniko : ClinikoClient, forceUpdateAll : Boolean = false) {
         runBlocking {
             coroutineScope {
 
@@ -29,8 +29,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
                 val lastUpdate = metadata.lastClinikoUpdate
                 val now = Clock.System.now() // this is utc
 
-                val filter = instantInRange(field = "updated_at", minInstant = lastUpdate, maxInstant = now)
-                //val filter = parametersOf() //TODO allow option to update all, regardless of time
+                val filter = if (forceUpdateAll) parametersOf() else instantInRange(field = "updated_at", minInstant = lastUpdate, maxInstant = now)
 
                 //download all the rows from cliniko, asynchronously
                 val getPatients = async { cliniko.getPatients(params = filter) }
