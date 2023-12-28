@@ -7,6 +7,7 @@ import cliniko.instantInRange
 import com.mongodb.client.model.Filters.*
 import com.mongodb.kotlin.client.coroutine.MongoCollection
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.http.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.firstOrNull
@@ -28,9 +29,9 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
                 val lastUpdate = metadata.lastClinikoUpdate
                 val now = Clock.System.now() // this is utc
 
-                val filter = instantInRange(field = "updated_at", minInstant = lastUpdate, maxInstant = now)
+                //val filter = instantInRange(field = "updated_at", minInstant = lastUpdate, maxInstant = now)
+                val filter = parametersOf() //TODO allow option to update all, regardless of time
 
-                println("Here")
                 //download all the rows from cliniko, asynchronously
                 val getPatients = async { cliniko.getPatients(params = filter) }
                 val getCases = async { cliniko.getCases(params = filter) }
@@ -156,7 +157,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
         clinikoObj: C,
         clinikoId : Long? = clinikoObj.id,
         collection : MongoCollection<M>,
-        mongoFieldName : String = "cliniko.id",
+        mongoFieldName : String = "_id",
         updateFunc : (C, M?) -> M,
         allowCreate : Boolean)
     {
@@ -193,7 +194,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
     suspend fun getPatientWithAppointment(clinikoApptId: Long): Patient? {
 
-        val query = eq("appointments.cliniko.id", clinikoApptId)
+        val query = eq("appointments.id", clinikoApptId)
 
         return mongo.patients.find(query).firstOrNull()
     }
@@ -211,11 +212,11 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
     suspend fun getAppointmentType(id: Long) : AppointmentType? = getOne(id, mongo.apptTypes)
 
-    suspend fun <T : Any> getOne(id : Long, collection: MongoCollection<T>, fieldName : String = "id") : T? {
+    suspend fun <T : Any> getOne(id : Long, collection: MongoCollection<T>, fieldName : String = "_id") : T? {
         return collection.find(eq(fieldName, id)).firstOrNull()
     }
 
-    suspend fun <T : Any> getMultiple(ids : List<Long>, collection: MongoCollection<T>, fieldName : String = "id") : List<T> {
+    suspend fun <T : Any> getMultiple(ids : List<Long>, collection: MongoCollection<T>, fieldName : String = "_id") : List<T> {
         return collection.find(`in`(fieldName, ids)).toList()
     }
 }
