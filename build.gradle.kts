@@ -4,6 +4,7 @@ plugins {
     kotlin("jvm") version "1.9.0"
     kotlin("plugin.serialization") version "1.9.20"
     application
+    `maven-publish`
 }
 
 group = "fergusm"
@@ -15,14 +16,10 @@ val localProperties = Properties().apply {
 val authToken: String by localProperties
 
 repositories {
+    mavenLocal()
     mavenCentral()
-    maven {
-        url = uri("https://jitpack.io")
-        credentials {
-            username = authToken
-        }
-    }
 }
+
 
 val ktor_version: String by project
 val logback_version : String by project
@@ -41,9 +38,20 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
     implementation("org.mongodb:bson-kotlinx:$mongo_version")
     implementation("org.mongodb:mongodb-driver-kotlin-coroutine:$mongo_version")
-    //implementation("com.github.fergusmac:cliniko-kt:0.1.5")
-    implementation("fergusm:cliniko-kt")
+    implementation("fergusm:cliniko-kt:0.1.5")
+    implementation("fergusm:mongo-types:0.1.3")
     implementation("mysql:mysql-connector-java:8.0.33")
+}
+
+publishing {
+    publications {
+        register("mavenJava", MavenPublication::class) {
+            from(components["java"])
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
 }
 
 tasks.test {
@@ -51,7 +59,7 @@ tasks.test {
 }
 
 kotlin {
-    jvmToolchain(8)
+    jvmToolchain(21)
 }
 
 application {

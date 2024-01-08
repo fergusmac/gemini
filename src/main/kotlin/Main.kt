@@ -5,8 +5,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
-import mongo.MongoWrapper
-import mongo.types.MongoMetadata
+import fergusm.mongo.MongoWrapper
+import fergusm.mongo.types.MongoMetadata
 import java.io.File
 import java.util.Properties
 import kotlin.time.Duration

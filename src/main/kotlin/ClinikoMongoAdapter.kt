@@ -12,9 +12,9 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import mongo.MongoWrapper
-import mongo.transact
-import mongo.types.*
+import fergusm.mongo.MongoWrapper
+import fergusm.mongo.transact
+import fergusm.mongo.types.*
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 

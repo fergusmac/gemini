@@ -4,9 +4,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import mongo.copyAndUpsert
-import mongo.types.BillingInfo
-import mongo.types.Claimant
+import fergusm.mongo.copyAndUpsert
+import fergusm.mongo.types.BillingInfo
+import fergusm.mongo.types.Claimant
 
 private val logger = KotlinLogging.logger {}
 data class PatientTransferInfo(
