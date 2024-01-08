@@ -10,6 +10,7 @@ import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoCollection
 import java.lang.IllegalStateException
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import mongo.types.*
 import org.bson.Document
 import org.bson.codecs.configuration.CodecRegistries
@@ -71,11 +72,13 @@ class MongoWrapper(connectionString : ConnectionString, databaseName: String)
         return collection.find().toList()
     }
 
-    suspend fun <T : Any> getSingleton(collection: MongoCollection<T>) : T? {
-        val lst = collection.find().toList()
-        return if (lst.isEmpty()) null
-        else if (lst.size == 1) lst[0]
-        else throw IllegalStateException("Multiple instances of singleton mongo document")
+    fun <T : Any> getSingleton(collection: MongoCollection<T>) : T? {
+        return runBlocking {
+            val lst = collection.find().toList()
+            if (lst.isEmpty()) null
+            else if (lst.size == 1) lst[0]
+            else throw IllegalStateException("Multiple instances of singleton mongo document")
+        }
     }
 
     suspend fun <T: Any> upsertSingleton(collection: MongoCollection<T>, singleton: T) {

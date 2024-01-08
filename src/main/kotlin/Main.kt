@@ -1,8 +1,6 @@
 import cliniko.ClinikoClient
 import com.mongodb.ConnectionString
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
@@ -10,10 +8,11 @@ import kotlinx.datetime.TimeZone
 import mongo.ClinikoMongoAdapter
 import mongo.MongoWrapper
 import mongo.SqlMigrator
+import mongo.types.MongoMetadata
 import java.io.File
 import java.util.Properties
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 private val logger = KotlinLogging.logger {}
@@ -30,11 +29,22 @@ fun main(args: Array<String>) {
     val cliniko = ClinikoClient("api.au3.cliniko.com", apiKey = clinikoApiKey)
 
     runBlocking {
+
+        //every minute, load the updates from the last minute
         scheduleTask(start = LocalTime.parse("00:00:00"), interval = 1.minutes) {
-            val timeZone = TimeZone.of("Australia/Sydney")
-            val now = Clock.System.now().toLocalDateTime(timeZone)
-            println(now)
-            adapter.updateAll(cliniko)
+            val metadata = mongo.getSingleton(mongo.metadata) ?: MongoMetadata()
+            adapter.downloadUpdates(cliniko, updatesSince = metadata.lastClinikoUpdate)
+        }
+
+        //every hour, load the last three hours of updates, in case we missed something
+        scheduleTask(start = LocalTime.parse("00:00:00"), interval = 1.hours) {
+            val now = Clock.System.now()
+            adapter.downloadUpdates(cliniko, updatesSince = now - 3.hours)
+        }
+
+        //every 24 hours, reload everything
+        scheduleTask(start = LocalTime.parse("02:00:00"), interval = 24.hours) {
+            adapter.downloadUpdates(cliniko, updatesSince = null)
         }
     }
 

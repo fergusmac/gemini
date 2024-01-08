@@ -13,23 +13,21 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Instant
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import mongo.types.*
 
 private val logger = KotlinLogging.logger {}
 class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
 
-    fun updateAll(cliniko : ClinikoClient, forceUpdateAll : Boolean = false) {
+    fun downloadUpdates(cliniko : ClinikoClient, updatesSince : Instant?) {
         runBlocking {
             coroutineScope {
 
-                val metadata = mongo.getSingleton(mongo.metadata) ?: MongoMetadata()
-                val lastUpdate = metadata.lastClinikoUpdate
                 val now = Clock.System.now() // this is utc
 
-                val filter = if (forceUpdateAll) parametersOf() else instantInRange(field = "updated_at", minInstant = lastUpdate, maxInstant = now)
+                val filter = if (updatesSince == null) parametersOf() else instantInRange(field = "updated_at", minInstant = updatesSince, maxInstant = now)
 
                 //download all the rows from cliniko, asynchronously
                 val getPatients = async { cliniko.getPatients(params = filter) }
@@ -63,6 +61,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
                 //getAvailabilities.await().values.forEach { }
                 //getUnavailabilities.await().values.forEach { }
 
+                val metadata = mongo.getSingleton(mongo.metadata) ?: MongoMetadata()
                 mongo.upsertSingleton(mongo.metadata, metadata.copy(lastClinikoUpdate = now))
             }
         }
