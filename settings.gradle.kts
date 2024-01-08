@@ -10,5 +10,6 @@ plugins {
 }
 
 includeBuild("../cliniko-kt")
+includeBuild("../mongo-types")
 
 rootProject.name = "gemini"

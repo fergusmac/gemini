@@ -1,12 +1,9 @@
-package mongo
-
 import cliniko.ClinikoClient
 import cliniko.ClinikoRow
-import cliniko.sections.*
 import cliniko.instantInRange
-import com.mongodb.client.model.Filters.*
+import cliniko.sections.*
+import com.mongodb.client.model.Filters
 import com.mongodb.kotlin.client.coroutine.MongoCollection
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -15,7 +12,11 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import mongo.MongoWrapper
+import mongo.transact
 import mongo.types.*
+
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 class ClinikoMongoAdapter (val mongo : MongoWrapper) {
@@ -27,7 +28,11 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
                 val now = Clock.System.now() // this is utc
 
-                val filter = if (updatesSince == null) parametersOf() else instantInRange(field = "updated_at", minInstant = updatesSince, maxInstant = now)
+                val filter = if (updatesSince == null) parametersOf() else instantInRange(
+                    field = "updated_at",
+                    minInstant = updatesSince,
+                    maxInstant = now
+                )
 
                 //download all the rows from cliniko, asynchronously
                 val getPatients = async { cliniko.getPatients(params = filter) }
@@ -191,7 +196,7 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
 
     suspend fun getPatientWithAppointment(clinikoApptId: Long): Patient? {
 
-        val query = eq("appointments.id", clinikoApptId)
+        val query = Filters.eq("appointments.id", clinikoApptId)
 
         return mongo.patients.find(query).firstOrNull()
     }
@@ -210,13 +215,10 @@ class ClinikoMongoAdapter (val mongo : MongoWrapper) {
     suspend fun getAppointmentType(id: Long) : AppointmentType? = getOne(id, mongo.apptTypes)
 
     suspend fun <T : Any> getOne(id : Long, collection: MongoCollection<T>, fieldName : String = "_id") : T? {
-        return collection.find(eq(fieldName, id)).firstOrNull()
+        return collection.find(Filters.eq(fieldName, id)).firstOrNull()
     }
 
     suspend fun <T : Any> getMultiple(ids : List<Long>, collection: MongoCollection<T>, fieldName : String = "_id") : List<T> {
-        return collection.find(`in`(fieldName, ids)).toList()
+        return collection.find(Filters.`in`(fieldName, ids)).toList()
     }
 }
-
-
-

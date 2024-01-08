@@ -1,12 +1,10 @@
-package mongo
-
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.sql.DriverManager
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import copyAndUpsert
+import mongo.copyAndUpsert
 import mongo.types.BillingInfo
 import mongo.types.Claimant
 
